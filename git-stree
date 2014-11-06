@@ -1,0 +1,264 @@
+#! /bin/bash
+
+# Git STree -- A better Git subtree helper command.
+#
+# http://tdd.github.io/git-stree
+#
+# Copyright (c) 2014 Christophe Porteneuve <christophe@delicious-insights.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+# LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+# WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+tty -s <&1 && grep -q 'color' <<< "$TERM" && is_tty=true || is_tty=false
+args=("$@")
+subcmd=${args[0]}
+
+# Command: `git stree add name -P prefix url [branch]`
+#
+# Defines a subtree and performs the initial injection in the working directory.
+# Does not create a commit out of it.  Some configuration is added to retain
+# subtree information (e.g. prefix, url, branch and latest sync'd commit).
+function add_subtree {
+  local name=$(require_name)
+  require_arg 2 'Missing -P parameter' '-P' > /dev/null
+  local prefix=$(require_arg 3 'Missing prefix')
+  local url=$(require_arg 4 'Missing URL')
+  local branch=$(optional_arg 5 'master')
+
+  local root_key=$(get_root_key "$name")
+  local remote_name=$(get_remote_name "$name")
+  if [ $(git config --local "remote.$remote_name.url") ]; then
+    error false "A remote already exists for '$name' ($remote_name). Subtree already defined?"
+  fi
+
+  ensure_attached_head
+  ensure_no_stage
+
+  git remote add -t "$branch" "$remote_name" "$url" &&
+    git fetch --quiet "$remote_name" &&
+    git config --local "stree.$root_key.prefix" "$prefix" &&
+    git config --local "stree.$root_key.branch" "$branch" &&
+    git read-tree --prefix="$prefix" -u "$remote_name/$branch" &&
+    git commit -m "[STree] Added stree '$root_key' in $prefix" &&
+    git config --local "stree.$root_key.latest-sync" "$(git rev-parse HEAD)"
+
+  echo ''
+  yay "STree $root_key configured, 1st injection committed."
+}
+
+# Helper: makes sure we're not on a detached HEAD
+function ensure_attached_head {
+  [ 'HEAD' != "$(git rev-parse --abbrev-ref --symbolic HEAD)" ] && return
+  error false "You are apparently on a detached HEAD.  This is not a good point to commit from.  Checkout a branch."
+}
+
+# Helper: makes sure we're in a Git repo.  Piggy-backs on `git config --local`
+# to determine that, instead of traversing the filesystem upwards looking for `.git`.
+function ensure_git_repo {
+  cmd=$(git rev-parse --is-inside-work-tree 2> /dev/null)
+  [ "true" == "$cmd" ] || error false "You do not appear to be in a Git repository"
+}
+
+# Helper: makes sure there is nothing in the stage.
+function ensure_no_stage {
+  git diff --cached --quiet || error false "You have staged changes already.  This should not get conflated with an upcoming STree commit.  Finalize your commit first or unstage your stuff."
+}
+
+# Helper: error message.  This will show up in red on STDERR, followed by usage info,
+# then exit the script with exit code 1.
+function error {
+  show_usage=$1
+  shift
+  message $RED '✖︎ '"$@"$'\n' >&2
+  $show_usage && usage
+  exit 1
+}
+
+# Helper: computes a backport branch name based on the passed CLI name.
+function get_branch_name {
+  echo "stree-backports-$(get_root_key "$1")"
+}
+
+# Helper: computes a remote name based on the passed CLI name.
+function get_remote_name {
+  echo "stree-$(get_root_key "$1")"
+}
+
+{ echo "foo" | iconv -t 'ASCII' &> /dev/null; } && has_iconv=true || has_iconv=false
+{ echo "foo" | tr A-Z a-z &> /dev/null; } && has_tr=true || has_tr=false
+
+# Helper: computes a root config key based on the passed CLI name.
+function get_root_key {
+  local result="$1"
+  $has_iconv && result=$(echo "$result" | iconv -t 'ASCII//TRANSLIT//IGNORE')
+  $has_tr && result=$(echo "$result" | tr A-Z a-z)
+  result=$(echo "$result" | sed 's/[^a-z0-9_ -]\+//g' | sed -e 's/^ \+\| \+$//g' -e 's/ \+/-/g')
+  [ -z "$result" ] && error false "STree name '$1' does not yield a usable remote name.  Try using ASCII letters/numbers in it."
+  echo "$result"
+}
+
+# Color constants (VT100 ANSI codes)
+GREEN=32
+RED=31
+
+# Helper: message.  Takes a color code as first arg, then the message as remaining
+# args.  Only injects VT100 ANSI codes if we're on a color-supporting TTY output
+# (which is detected using STDOUT, by the way, so YMMV when redirecting to STDERR).
+function message {
+  local color="$1"
+  shift
+  $is_tty && echo -en "\033[0;${color}m"
+  echo -n "$@"
+  $is_tty && echo -e "\033[0m" || echo ''
+}
+
+# Helper: gets an argument from the CLI, if present, otherwise uses the default
+# passed as $2
+function optional_arg {
+  local result=${args[$1]}
+  [ -n "$result" ] && echo "$result" || echo "$2"
+}
+
+# Command: `git stree pull name`
+#
+# Pulls remote updates for a properly-configured subtree, and squash-merges them
+# as a single commit in the current branch.  This requires a non-detached HEAD and
+# an empty stage, so we don't conflate our work with ongoing commit construction.
+function pull_subtree {
+  local name=$(require_name)
+
+  ensure_attached_head
+  ensure_no_stage
+
+  # FIXME: check config is set
+  echo COMING SOON: pull_subtree
+}
+
+# Command: `git stree push name [commits...]`
+#
+# Pushes local commits for a properly-configured subtree on its upstream.
+# This can either take a series of specific commits, or will auto-determine
+# a list of commits to be used since the last sync.  These commits are
+# cherry-picked on a special integration branch that first rebase-pulls
+# from upstream, then the new set is pushed back.
+function push_subtree {
+  local name=$(require_name)
+  local commits=($args)
+  if [ ${#commits[@]} -eq 0 ]; then
+    # FIXME: list relevant commits
+    echo 'COMING SOON'
+  fi
+  # FIXME backup current HEAD and stash everything to properly restore afterwards
+  echo COMING SOON: push_subtree
+}
+
+# Helper: require that an argument still be available in the list provided on the CLI
+# and consume it, possibly verifying it is a given fixed string (then passed as $2).
+#
+# An error message *must* be provided as $1 should the argument be missing or incorrect.
+# In such a case, it's passed to `error`, thereby stopping the script.
+function require_arg {
+  local result="${args[$1]}"
+  [ -n "$3" -a "$3" != "$result" ] && result=''
+  if [ "$result" ]; then
+    echo "$result"
+    return
+  fi
+
+  error true "$2"
+}
+
+# Helper: just a comfort wrapper over `require_arg` for the most common use case.
+function require_name {
+  require_arg 1 'Missing subtree name'
+}
+
+# Command: `git stree rm name`
+#
+# Removes all definitions (configuration entries) and backport branch for the given
+# subtree, but leaves the subdirectory contents in place.
+function rm_subtree {
+  local name=$(require_name)
+  local root_key=$(get_root_key "$name")
+  local remote_name=$(get_remote_name "$name")
+  local branch_name=$(get_branch_name "$name")
+
+  git config --local --remove-section "stree.$root_key" &> /dev/null
+  git remote rm "$remote_name" &> /dev/null
+  git branch -D "$branch_name" &> /dev/null
+  yay "All settings removed for STree '$root_key'."
+}
+
+# Helper: usage display on STDERR.  Used when an error occurs or when the CLI
+# args don't start with a valid command.
+function usage {
+  cat >&2 <<-EOT
+  Usage: $0 sub-command [options...]
+
+  Sub-commands:
+
+    add name -P prefix url [branch]
+
+      Defines a new subtree and performs its initial fetch and prefixed
+      (subdirectory) checkout.  You can specify a custom branch to track,
+      otherwise it will use \`master\`.  This creates a few local configuration
+      entries that will be needed later.
+
+    rm name
+
+      Removes all definitions for a given subtree (but leave the subdirectory
+      contents in place).
+
+    pull name
+
+      Attempts to pull remote updates for a subtree you already defined.
+      This is a no-rebase, squash-commit update that will not create any
+      extra line in your history graph, but result in a single update commit
+      on your current branch.
+
+    push name [commits...]
+
+      Pushes your local work on the subtree to its defined remote.  If you
+      specify commits, only these will be cherry-picked. Otherwise, it will
+      cherry-pick all commits related to the subtree that occurred since the
+      latest \`add\`/\`pull\`.  This creates/maintains a subtree-specific
+      backport branch that you should not manually touch.
+
+    help
+
+      Displays this usage information.
+EOT
+}
+
+# Helper: success message.  This will show up in green on STDOUT.
+function yay {
+  message $GREEN '✔︎ '"$@"$'\n'
+}
+
+## MAIN ENTRY POINT ##
+
+ensure_git_repo
+case "$subcmd" in
+  a|ad|add) add_subtree;;
+  r|rm)     rm_subtree;;
+  pul|pull) pull_subtree;;
+  pus|push) push_subtree;;
+  # FIXME: clean|clear|forget -> clears dedicated remotes and backport branches
+  ""|*)     usage;;
+esac
