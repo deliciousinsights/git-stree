@@ -25,7 +25,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+[ -n "$STREE_DEBUG" ] && set -x
+
+# Env/context-related flags so we know what extra commands can be called upon.
 tty -s <&1 && grep -q 'color' <<< "$TERM" && is_tty=true || is_tty=false
+{ echo "foo" | iconv -t 'ASCII' &> /dev/null; } && has_iconv=true || has_iconv=false
+{ echo "foo" | tr A-Z a-z &> /dev/null; } && has_tr=true || has_tr=false
+
+# Grabbing CLI arguments and the main subcommand
 args=("$@")
 subcmd=${args[0]}
 
@@ -43,7 +50,7 @@ function add_subtree {
 
   local root_key=$(get_root_key "$name")
   local remote_name=$(get_remote_name "$name")
-  if [ $(git config --local "remote.$remote_name.url") ]; then
+  if [ $(git config --local --get "remote.$remote_name.url") ]; then
     error false "A remote already exists for '$name' ($remote_name). Subtree already defined?"
   fi
 
@@ -80,6 +87,18 @@ function ensure_no_stage {
   git diff --cached --quiet || error false "You have staged changes already.  This should not get conflated with an upcoming STree commit.  Finalize your commit first or unstage your stuff."
 }
 
+# Helper: checks that the stree seems defined already.
+function ensure_stree_defined {
+  local name="$1"
+  local remote_name=$(get_remote_name "$name")
+  local root_key=$(get_root_key "$name")
+
+  for key in "remote.$remote_name.url" "stree.$root_key.prefix" "stree.$root_key.branch"; do
+    git config --local --get "$key" &> /dev/null ||
+      error false "STree '$root_key' does not seem (fully) defined: missing '$key' configuration."
+  done
+}
+
 # Helper: error message.  This will show up in red on STDERR, followed by usage info,
 # then exit the script with exit code 1.
 function error {
@@ -87,7 +106,7 @@ function error {
   shift
   message $RED '✖︎ '"$@"$'\n' >&2
   $show_usage && usage
-  exit 1
+  kill -s ABRT $$
 }
 
 # Helper: computes a backport branch name based on the passed CLI name.
@@ -99,9 +118,6 @@ function get_branch_name {
 function get_remote_name {
   echo "stree-$(get_root_key "$1")"
 }
-
-{ echo "foo" | iconv -t 'ASCII' &> /dev/null; } && has_iconv=true || has_iconv=false
-{ echo "foo" | tr A-Z a-z &> /dev/null; } && has_tr=true || has_tr=false
 
 # Helper: computes a root config key based on the passed CLI name.
 function get_root_key {
@@ -145,9 +161,9 @@ function pull_subtree {
 
   ensure_attached_head
   ensure_no_stage
+  ensure_stree_defined "$name"
 
-  # FIXME: check config is set
-  echo COMING SOON: pull_subtree
+  # FIXME: perform the pull!
 }
 
 # Command: `git stree push name [commits...]`
@@ -250,6 +266,14 @@ EOT
 function yay {
   message $GREEN '✔︎ '"$@"$'\n'
 }
+
+# Allow subshells (such as functions called within a `$(…)` subshell)
+# to exit the parent script (the main `git-stree` script) by sending it
+# an ABRT (6) signal.  See `error` for the trigger side of this.
+function exit1 {
+  exit 1
+}
+trap exit1 ABRT
 
 ## MAIN ENTRY POINT ##
 
