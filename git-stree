@@ -66,7 +66,7 @@ function add_subtree {
     git config --local "stree.$root_key.latest-sync" "$(git rev-parse HEAD)"
 
   echo ''
-  yay "STree $root_key configured, 1st injection committed."
+  yay "STree '$root_key' configured, 1st injection committed."
 }
 
 # Helper: makes sure we're not on a detached HEAD
@@ -130,8 +130,14 @@ function get_root_key {
 }
 
 # Color constants (VT100 ANSI codes)
+CYAN=36
 GREEN=32
 RED=31
+
+# Helper: info/success message.  This will show up in cyan on STDOUT.
+function meh {
+  message $CYAN '✔︎ '"$@"$'\n'
+}
 
 # Helper: message.  Takes a color code as first arg, then the message as remaining
 # args.  Only injects VT100 ANSI codes if we're on a color-supporting TTY output
@@ -163,7 +169,24 @@ function pull_subtree {
   ensure_no_stage
   ensure_stree_defined "$name"
 
-  # FIXME: perform the pull!
+  local root_key=$(get_root_key "$name")
+  local remote=$(get_remote_name "$name")
+  local branch=$(git config --local "stree.$root_key.branch")
+
+  git fetch --quiet "$remote" &&
+    git merge --quiet -s subtree --squash --log "$remote/$branch" &> /dev/null || exit $?
+
+  echo ''
+
+  if git diff --cached --quiet; then
+    meh "STree '$root_key' pulled, but no updates found."
+  else
+    local msg_file="$(git rev-parse --git-dir)/SQUASH_MSG"
+    local msg="[STree] Pulled stree '$root_key'"$'\n\n'"$(cat "$msg_file")"
+    git commit -m "$msg" &&
+    git config --local "stree.$root_key.latest-sync" "$(git rev-parse HEAD)"
+    yay "STree '$root_key' pulled, updates committed."
+  fi
 }
 
 # Command: `git stree push name [commits...]`
