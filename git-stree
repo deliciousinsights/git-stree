@@ -74,7 +74,7 @@ function add_subtree {
     git config --local "stree.$root_key.branch" "$branch" &&
     git read-tree --prefix="$prefix" -u "$remote_name/$branch" &&
     git commit -m "[STree] Added stree '$root_key' in $prefix" &&
-    git config --local "stree.$root_key.latest-sync" "$(git rev-parse HEAD)"
+    git config --local "stree.$root_key.latest-sync" "$(git rev-parse --short HEAD)"
 
   echo ''
   yay "STree '$root_key' configured, 1st injection committed."
@@ -130,6 +130,14 @@ function error {
   kill -s ABRT $$
 }
 
+# Command: `git stree forget`
+function forget_subtrees {
+  get_subtree_list | while read name _; do
+    rm_subtree "$name" && discreet "• Removed subtree '$name'"
+  done
+  yay 'Successfully removed all subtree definitions.'
+}
+
 # Helper: computes a backport branch name based on the passed CLI name.
 function get_branch_name {
   echo "stree-backports-$(get_root_key "$1")"
@@ -170,6 +178,7 @@ function list_subtrees {
   [ "-v" == "${args[1]}" ] && verbose=true
 
   echo "$list" | while read stree remoting prefix; do
+    [ -z "$stree" ] && continue
     local branch_name=$(get_branch_name "$stree")
     local backports=false
     local backporting=''
@@ -329,7 +338,8 @@ function require_name {
 # Removes all definitions (configuration entries) and backport branch for the given
 # subtree, but leaves the subdirectory contents in place.
 function rm_subtree {
-  local name=$(require_name)
+  local name="$1"
+  [ -z "$name" ] && name=$(require_name)
   local root_key=$(get_root_key "$name")
   local remote_name=$(get_remote_name "$name")
   local branch_name=$(get_branch_name "$name")
@@ -337,7 +347,8 @@ function rm_subtree {
   git config --local --remove-section "stree.$root_key" &> /dev/null
   git remote rm "$remote_name" &> /dev/null
   git branch -D "$branch_name" &> /dev/null
-  yay "All settings removed for STree '$root_key'."
+  [ -z "$1" ] && yay "All settings removed for STree '$root_key'."
+  true
 }
 
 # Helper: usage display on STDERR.  Used when an error occurs or when the CLI
@@ -379,6 +390,15 @@ EOT
 
 EOT
   fi
+  if [ -z "$cmd" -o "forget" == "$cmd" ]; then
+    cat >&2 <<-EOT
+    forget
+
+      "Forgets" all subtrees if no identifiers are passed.  This essentially
+      does `git stree rm` over each subtree in turn.
+
+EOT
+  fi
   if [ -z "$cmd" -o "list" == "$cmd" ]; then
     cat >&2 <<-EOT
     list [-v]
@@ -386,15 +406,6 @@ EOT
       Lists all defined subtrees.  If the \`-v\` option is set, displays their
       latest sync (central -> subtree) commit and latest backport (subtree -> central)
       with their timestamps.
-
-EOT
-  fi
-  if [ -z "$cmd" -o "rm" == "$cmd" ]; then
-    cat >&2 <<-EOT
-    rm name
-
-      Removes all definitions for a given subtree (but leave the subdirectory
-      contents in place).
 
 EOT
   fi
@@ -418,6 +429,15 @@ EOT
       cherry-pick all commits related to the subtree that occurred since the
       latest \`add\`/\`pull\`.  This creates/maintains a subtree-specific
       backport branch that you should not manually touch.
+
+EOT
+  fi
+  if [ -z "$cmd" -o "rm" == "$cmd" ]; then
+    cat >&2 <<-EOT
+    rm name
+
+      Removes all definitions for the given subtree (but leaves the subdirectory
+      contents in place).
 
 EOT
   fi
@@ -447,11 +467,18 @@ trap exit1 ABRT
 
 ensure_git_repo
 case "$subcmd" in
-  a|ad|add)       add_subtree;;
-  # FIXME: forget -> forgets dedicated remotes and backport branches
-  l|li|lis|list)  list_subtrees;;
-  pul|pull)       pull_subtree;;
-  pus|push)       push_subtree;;
-  r|rm)           rm_subtree;;
-  ""|*)           usage;;
+  a|ad|add)
+    add_subtree;;
+  f|fo|for|forg|forge|forget)
+    forget_subtrees;;
+  l|li|lis|list)
+    list_subtrees;;
+  pul|pull)
+    pull_subtree;;
+  pus|push)
+    push_subtree;;
+  r|rm)
+    rm_subtree;;
+  ""|*)
+    usage;;
 esac
