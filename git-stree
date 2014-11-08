@@ -132,7 +132,7 @@ function error {
 
 # Command: `git stree forget`
 function forget_subtrees {
-  get_subtree_list | while read name _; do
+  for name in $(get_subtree_list simple); do
     rm_subtree "$name" && discreet "• Removed subtree '$name'"
   done
   yay 'Successfully removed all subtree definitions.'
@@ -164,10 +164,14 @@ function get_root_key {
 function get_subtree_list {
   git config --local --get-regexp 'remote\.stree.*\.url' | sort | while read key url; do
     local name="$(sed 's/remote\.stree-\|\.url//g' <<< "$key")"
-    local branch="$(git config --local "stree.$name.branch")"
-    local prefix="$(git config --local "stree.$name.prefix")"
+    if [ 'simple' == "$1" ]; then
+      echo "$name"
+    else
+      local branch="$(git config --local "stree.$name.branch")"
+      local prefix="$(git config --local "stree.$name.prefix")"
 
-    printf "%q %q %q\n" "$name" "$url@$branch" "$prefix"
+      printf "%q %q %q\n" "$name" "$url@$branch" "$prefix"
+    fi
   done
 }
 
