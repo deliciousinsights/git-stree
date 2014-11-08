@@ -32,6 +32,12 @@ tty -s <&1 && grep -q 'color' <<< "$TERM" && is_tty=true || is_tty=false
 { echo "foo" | iconv -t 'ASCII' &> /dev/null; } && has_iconv=true || has_iconv=false
 { echo "foo" | tr A-Z a-z &> /dev/null; } && has_tr=true || has_tr=false
 
+# Color constants (VT100 ANSI codes)
+CYAN=36
+GRAY=37
+GREEN=32
+RED=31
+
 # Grabbing CLI arguments and the main subcommand
 args=("$@")
 subcmd=${args[0]}
@@ -72,6 +78,11 @@ function add_subtree {
 
   echo ''
   yay "STree '$root_key' configured, 1st injection committed."
+}
+
+# Helper: determines whether a branch exists
+function branch_exists {
+  [ "refs/heads/$1" == "$(git rev-parse --symbolic-full-name --verify --quiet "$1")" ]
 }
 
 # Helper: discreet info message.  This will show up in gray on STDOUT.
@@ -139,11 +150,47 @@ function get_root_key {
   echo "$result"
 }
 
-# Color constants (VT100 ANSI codes)
-CYAN=36
-GRAY=37
-GREEN=32
-RED=31
+# Helper: returns a list of 3-tuples, one for each defined stree.  Tuples are
+# three quoted strings: the stree’s name, its remoting (remote-name/remote-branch),
+# and its WD prefix subdirectory.
+function get_subtree_list {
+  git config --local --get-regexp 'remote\.stree.*\.url' | sort | while read key url; do
+    local name="$(sed 's/remote\.stree-\|\.url//g' <<< "$key")"
+    local branch="$(git config --local "stree.$name.branch")"
+    local prefix="$(git config --local "stree.$name.prefix")"
+
+    printf "%q %q %q\n" "$name" "$url@$branch" "$prefix"
+  done
+}
+
+# Command: `git stree list [-v]`
+function list_subtrees {
+  local list=$(get_subtree_list)
+  local verbose=false
+  [ "-v" == "${args[1]}" ] && verbose=true
+
+  echo "$list" | while read stree remoting prefix; do
+    local branch_name=$(get_branch_name "$stree")
+    local backports=false
+    local backporting=''
+    branch_exists "$branch_name" && backports=true
+    $backports && backporting=" (backports through $branch_name)"
+
+    echo "• $stree [$prefix] <=> $remoting$backporting"
+    if $verbose; then
+      local latest_sha=$(git config --local "stree.$stree.latest-sync")
+      local infix=''
+      $backports && infix='    '
+      echo ''
+      git show -s --pretty=format:"  %C(auto)Latest sync:$infix %h - %ad - %s (%an)%n" "$latest_sha"
+
+      if $backports; then
+        git show -s --pretty=format:'  %C(auto)Latest backport: %h - %ad - %s (%an)%n' "$branch_name"
+      fi
+      echo ''
+    fi
+  done
+}
 
 # Helper: info/success message.  This will show up in cyan on STDOUT.
 function meh {
@@ -236,7 +283,7 @@ function push_subtree {
   local branch=$(git config --local "stree.$root_key.branch")
   local branch_name=$(get_branch_name "$name")
 
-  if [ "refs/heads/$branch_name" == "$(git rev-parse --symbolic-full-name --verify --quiet "$branch_name")" ]; then
+  if branch_exists "$branch_name"; then
     git checkout --quiet --merge "$branch_name" &&
       git fetch "$remote_name" &&
       git rebase --preserve-merges --autostash --quiet "$remote_name/$branch" &> /dev/null
@@ -297,6 +344,10 @@ function rm_subtree {
 # args don't start with a valid command.
 function usage {
   local cmd="$subcmd"
+  if grep -vq "@$cmd@" <<< "@add@help@list@pull@push@rm@"; then
+    cmd=""
+  fi
+
   if [ "help" == "$cmd" -a -n "${args[1]}" ]; then
     cmd="${args[1]}"
   elif [ "help" == "$cmd" ]; then
@@ -325,6 +376,16 @@ EOT
       (subdirectory) checkout.  You can specify a custom branch to track,
       otherwise it will use \`master\`.  This creates a few local configuration
       entries that will be needed later.
+
+EOT
+  fi
+  if [ -z "$cmd" -o "list" == "$cmd" ]; then
+    cat >&2 <<-EOT
+    list [-v]
+
+      Lists all defined subtrees.  If the \`-v\` option is set, displays their
+      latest sync (central -> subtree) commit and latest backport (subtree -> central)
+      with their timestamps.
 
 EOT
   fi
@@ -386,10 +447,11 @@ trap exit1 ABRT
 
 ensure_git_repo
 case "$subcmd" in
-  a|ad|add) add_subtree;;
-  r|rm)     rm_subtree;;
-  pul|pull) pull_subtree;;
-  pus|push) push_subtree;;
-  # FIXME: clean|clear|forget -> clears dedicated remotes and backport branches
-  ""|*)     usage;;
+  a|ad|add)       add_subtree;;
+  # FIXME: forget -> forgets dedicated remotes and backport branches
+  l|li|lis|list)  list_subtrees;;
+  pul|pull)       pull_subtree;;
+  pus|push)       push_subtree;;
+  r|rm)           rm_subtree;;
+  ""|*)           usage;;
 esac
