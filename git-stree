@@ -69,6 +69,11 @@ function add_subtree {
   yay "STree '$root_key' configured, 1st injection committed."
 }
 
+# Helper: discreet info message.  This will show up in gray on STDOUT.
+function discreet {
+  message $GRAY "$@"
+}
+
 # Helper: makes sure we're not on a detached HEAD
 function ensure_attached_head {
   [ 'HEAD' != "$(git rev-parse --abbrev-ref --symbolic HEAD)" ] && return
@@ -131,6 +136,7 @@ function get_root_key {
 
 # Color constants (VT100 ANSI codes)
 CYAN=36
+GRAY=37
 GREEN=32
 RED=31
 
@@ -198,13 +204,51 @@ function pull_subtree {
 # from upstream, then the new set is pushed back.
 function push_subtree {
   local name=$(require_name)
-  local commits=($args)
+
+  ensure_no_stage
+  ensure_stree_defined "$name"
+
+  local root_key=$(get_root_key "$name")
+  local prefix=$(git config --local "stree.$root_key.prefix")
+  local -a commits=(${args[@]:2})
   if [ ${#commits[@]} -eq 0 ]; then
-    # FIXME: list relevant commits
-    echo 'COMING SOON'
+    local latest=$(git config --local "stree.$root_key.latest-sync")
+    if [ -z "$latest" ]; then
+      error false "Cannot find the most recent sync point for this subtree :-("
+    fi
+
+    latest=$(git rev-parse --short "$latest")
+    commits=($(git rev-list --reverse --abbrev-commit "$latest".. -- "$prefix"))
+    if [ ${#commits[@]} -eq 0 ]; then
+      meh "No local commits found for subtree '$name' since latest sync ($latest)"
+      return
+    fi
   fi
-  # FIXME backup current HEAD and stash everything to properly restore afterwards
-  echo COMING SOON: push_subtree
+
+  local latest_head=$(git rev-parse --symbolic --abbrev-ref HEAD)
+
+  local remote_name=$(get_remote_name "$name")
+  local branch=$(git config --local "stree.$root_key.branch")
+  local branch_name=$(get_branch_name "$name")
+
+  if [ "refs/heads/$branch_name" == "$(git rev-parse --symbolic-full-name --verify --quiet "$branch_name")" ]; then
+    git checkout --quiet --merge "$branch_name" &&
+      git fetch "$remote_name" &&
+      git rebase --preserve-merges --autostash --quiet "$remote_name/$branch" &> /dev/null
+  else
+    git checkout --quiet --track -b "$branch_name" "$remote_name/$branch"
+  fi
+
+  for commit in "${commits[@]}"; do
+    git cherry-pick -x -X subtree="$prefix" "$commit" > /dev/null &&
+      git config --local "stree.$root_key.latest-sync" "$commit" &&
+      discreet "• $(git show -s --oneline "$commit")" ||
+      error false "Could not cherry-pick $(git show -s --oneline "$commit")"
+  done
+
+  git push --quiet &&
+  git checkout --quiet --merge "$latest_head" &&
+  yay "STree '$name' successfully backported local changes to its remote"
 }
 
 # Helper: require that an argument still be available in the list provided on the CLI
