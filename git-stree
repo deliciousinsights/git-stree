@@ -35,6 +35,11 @@ tty -s <&1 && grep -q 'color' <<< "$TERM" && is_tty=true || is_tty=false
 # Grabbing CLI arguments and the main subcommand
 args=("$@")
 subcmd=${args[0]}
+if [ -n "$subcmd" -a "--help" == "${args[1]}" ]; then
+  args[0]=help
+  args[1]="$subcmd"
+  subcmd="${args[0]}"
+fi
 
 # Command: `git stree add name -P prefix url [branch]`
 #
@@ -291,11 +296,29 @@ function rm_subtree {
 # Helper: usage display on STDERR.  Used when an error occurs or when the CLI
 # args don't start with a valid command.
 function usage {
-  cat >&2 <<-EOT
-  Usage: $0 sub-command [options...]
+  local cmd="$subcmd"
+  if [ "help" == "$cmd" -a -n "${args[1]}" ]; then
+    cmd="${args[1]}"
+  elif [ "help" == "$cmd" ]; then
+    cmd=""
+  fi
 
-  Sub-commands:
+  if [ -z "$cmd" ]; then
+    cat >&2 <<-EOT
+Usage: $0 sub-command [options...]
 
+ Sub-commands:
+
+EOT
+  else
+    cat >&2 <<-EOT
+Usage: $0 $cmd [options…]
+
+EOT
+  fi
+
+  if [ -z "$cmd" -o "add" == "$cmd" ]; then
+    cat >&2 <<-EOT
     add name -P prefix url [branch]
 
       Defines a new subtree and performs its initial fetch and prefixed
@@ -303,11 +326,19 @@ function usage {
       otherwise it will use \`master\`.  This creates a few local configuration
       entries that will be needed later.
 
+EOT
+  fi
+  if [ -z "$cmd" -o "rm" == "$cmd" ]; then
+    cat >&2 <<-EOT
     rm name
 
       Removes all definitions for a given subtree (but leave the subdirectory
       contents in place).
 
+EOT
+  fi
+  if [ -z "$cmd" -o "pull" == "$cmd" ]; then
+    cat >&2 <<-EOT
     pull name
 
       Attempts to pull remote updates for a subtree you already defined.
@@ -315,6 +346,10 @@ function usage {
       extra line in your history graph, but result in a single update commit
       on your current branch.
 
+EOT
+  fi
+  if [ -z "$cmd" -o "push" == "$cmd" ]; then
+    cat >&2 <<-EOT
     push name [commits...]
 
       Pushes your local work on the subtree to its defined remote.  If you
@@ -323,10 +358,15 @@ function usage {
       latest \`add\`/\`pull\`.  This creates/maintains a subtree-specific
       backport branch that you should not manually touch.
 
-    help
-
-      Displays this usage information.
 EOT
+  fi
+  if [ -z "$cmd" -o "help" == "$cmd" ]; then
+    cat >&2 <<-EOT
+    help [command]
+
+      Displays this usage information, or the command’s usage information.
+EOT
+  fi
 }
 
 # Helper: success message.  This will show up in green on STDOUT.
