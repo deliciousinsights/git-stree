@@ -23,11 +23,21 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+# Helper: produces a completion reply with a given suffix on every value
+function __git_stree_build_completion {
+  COMPREPLY=()
+  local i=0 word
+  for word in $1; do
+    COMPREPLY[i++]="$word$2"
+  done
+}
+
+# The main completion builder.
 function __git_stree_complete {
   local index=$((COMP_CWORD - __GIT_STREE_COMPLETE_OFFSET))
   # Subcommand
   if [ 1 -eq $index ]; then
-    COMPREPLY=($(compgen -W "add forget help list pull push rm" "$2" ))
+    __git_stree_build_completion "$(compgen -W "add forget help list pull push rm" "$2" )" ' '
     return
   fi
 
@@ -59,10 +69,10 @@ function __git_stree_complete {
 
   # 3: -P mandatory option
   if [ 3 -eq $index ]; then
-    COMPREPLY=(-P)
+    COMPREPLY=("-P ")
   # 4: Mandatory value for the -P option.  Will be a directory (may not exist)
   elif [ 4 -eq $index -a '-P' == "$3" ]; then
-    COMPREPLY=($(compgen -d -S / "$2" | grep -v '^.git$'))
+    COMPREPLY=($(compgen -d -o nospace -S / "$2" | grep -v '^.git$'))
   # 5+: external URL and possible branch name; can't complete
   fi
 }
@@ -74,20 +84,24 @@ function __git_stree_complete_list {
   done
 }
 
+# Wrapper: completion entry point when used as git-stree (single command).
 function __git_stree_complete_main {
   __GIT_STREE_COMPLETE_OFFSET=0
   __git_stree_complete "$@"
 }
 
+# Wrapper: completion entry point when used as git stree (git subcommand).
 function __git_stree_main {
   if [ "stree" == "${COMP_WORDS[1]}" ]; then
     __GIT_STREE_COMPLETE_OFFSET=1
     __git_stree_complete "$@"
-  else
+  elif declare -F __git_wrap__git_main > /dev/null; then
     __git_wrap__git_main "$@"
   fi
 }
 
+# Register completion functions (and re-register git completion so we can inject
+# stree subcommand completion).
 complete -o nospace -F __git_stree_complete_main git-stree
 complete -o bashdefault -o default -o nospace -F __git_stree_main git 2>/dev/null \
   || complete -o default -o nospace -F __git_stree_main git
