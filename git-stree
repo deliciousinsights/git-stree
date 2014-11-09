@@ -56,6 +56,7 @@ function add_subtree {
   local name=$(require_name)
   require_arg 2 'Missing -P parameter' '-P' > /dev/null
   local prefix=$(require_arg 3 'Missing prefix')
+  prefix=$(normalize_prefix "$prefix")
   local url=$(require_arg 4 'Missing URL')
   local branch=$(optional_arg 5 'master')
 
@@ -219,6 +220,21 @@ function message {
   $is_tty && echo -en "\033[0;${color}m"
   echo -n "$@"
   $is_tty && echo -e "\033[0m" || echo ''
+}
+
+# Helper: normalizes a cwd-relative prefix so it starts from the root of the working directory.
+function normalize_prefix {
+  local root=$(dirname $(git rev-parse --git-dir))
+
+  echo "root: $root" >&2
+  echo "prefix: $1" >&2
+
+  if [ '.' == "$root" ]; then
+    echo "$1"
+    return
+  fi
+
+  sed "s@$root/@@" <<< "$(pwd -P)/$1"
 }
 
 # Helper: gets an argument from the CLI, if present, otherwise uses the default
