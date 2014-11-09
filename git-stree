@@ -28,7 +28,7 @@
 [ -n "$STREE_DEBUG" ] && set -x
 
 # Env/context-related flags so we know what extra commands can be called upon.
-tty -s <&1 && grep -q 'color' <<< "$TERM" && is_tty=true || is_tty=false
+tty -s <&1 && [[ "$TERM" =~ color ]] && is_tty=true || is_tty=false
 { echo "foo" | iconv -t 'ASCII' &> /dev/null; } && has_iconv=true || has_iconv=false
 { echo "foo" | tr A-Z a-z &> /dev/null; } && has_tr=true || has_tr=false
 
@@ -226,15 +226,18 @@ function message {
 function normalize_prefix {
   local root=$(dirname $(git rev-parse --git-dir))
 
-  echo "root: $root" >&2
-  echo "prefix: $1" >&2
-
   if [ '.' == "$root" ]; then
     echo "$1"
     return
   fi
 
-  sed "s@$root/@@" <<< "$(pwd -P)/$1"
+  local path="$(pwd -P)/$1"
+  path="${path//\/.\//\/}"
+  while [[ "$path" =~ ([^/][^/]*/\.\./) ]]; do
+    path="${path/${BASH_REMATCH[0]}/}"
+  done
+
+  sed "s@$root/@@" <<< "$path"
 }
 
 # Helper: gets an argument from the CLI, if present, otherwise uses the default
@@ -291,6 +294,7 @@ function push_subtree {
 
   local root_key=$(get_root_key "$name")
   local prefix=$(git config --local "stree.$root_key.prefix")
+
   local -a commits=(${args[@]:2})
   if [ ${#commits[@]} -eq 0 ]; then
     local latest=$(git config --local "stree.$root_key.latest-sync")
@@ -299,7 +303,10 @@ function push_subtree {
     fi
 
     latest=$(git rev-parse --short "$latest")
+    local root_dir="$(dirname $(git rev-parse --git-dir))"
+    cd "$root_dir"
     commits=($(git rev-list --reverse --abbrev-commit "$latest".. -- "$prefix"))
+    cd - > /dev/null
     if [ ${#commits[@]} -eq 0 ]; then
       meh "No local commits found for subtree '$name' since latest sync ($latest)"
       return
@@ -375,13 +382,14 @@ function rm_subtree {
 # args don't start with a valid command.
 function usage {
   local cmd="$subcmd"
-  if grep -vq "@$cmd@" <<< "@add@help@list@pull@push@rm@"; then
-    cmd=""
-  fi
 
   if [ "help" == "$cmd" -a -n "${args[1]}" ]; then
     cmd="${args[1]}"
   elif [ "help" == "$cmd" ]; then
+    cmd=""
+  fi
+
+  if ! [[ "@add@help@list@pull@push@rm@" =~ "@$cmd@" ]]; then
     cmd=""
   fi
 
