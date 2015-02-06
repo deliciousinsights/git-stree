@@ -1,4 +1,3 @@
-* Code: Fix weird display of single-command help
 * Code: split command
 * Doc:  README: Link to subtrees article and emphasize it!
 * Code: maintain a .gitstrees on every add
