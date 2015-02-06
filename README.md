@@ -185,7 +185,7 @@ If you wish to remove all subtree settings, use `git stree forget` instead.
 
   * Completion likely doesn't work on zsh just now, and perhaps not well on msysGit / Cygwin environments.
   * Just like `git-subtree`, we advise strongly you keep local updates to your subtree in their own dedicated commits, to facilitate backporting some of these to the subtree's remote.
-  * Subtree settings currently remain local to your repo (in your local Git configuration).  Work is ongoing to provide subcommands facilitating the versioning and sharing of stree setttings.
+  * Subtree settings currently remain local to your repo (in your local Git configuration).  Work is ongoing to provide subcommands facilitating the versioning and sharing of stree settings.
 
 ## Contributing
 
