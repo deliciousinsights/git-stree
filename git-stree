@@ -412,6 +412,16 @@ function rm_subtree
   true
 }
 
+# Command: `git stree split name -P path url [branch]`
+#
+# Creates a proper subtree branch from a subdirectory's contents and history.
+# Then the subtree's backport branch is configured and pushed (to either `master`
+# or the specified branch).
+function split_subtree
+{
+  true
+}
+
 # Helper: usage display on STDERR.  Used when an error occurs or when the CLI
 # args don't start with a valid command.
 function usage
@@ -424,7 +434,7 @@ function usage
     cmd=""
   fi
 
-  if ! [[ "@add@help@list@pull@push@rm@" =~ "@$cmd@" ]]; then
+  if ! [[ "@add@forget@help@list@pull@push@rm@split@" =~ "@$cmd@" ]]; then
     cmd=""
   fi
 
@@ -543,6 +553,8 @@ case "$subcmd" in
     push_subtree;;
   r|rm)
     rm_subtree;;
+  s|sp|spl|spli|split)
+    split_subtree;;
   ""|*)
     usage;;
 esac
