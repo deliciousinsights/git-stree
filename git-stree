@@ -458,7 +458,7 @@ EOT
     forget
 
       "Forgets" all subtrees if no identifiers are passed.  This essentially
-      does `git stree rm` over each subtree in turn.
+      does \`git stree rm\` over each subtree in turn.
 
 EOT
   fi
@@ -528,7 +528,8 @@ trap exit1 ABRT
 
 ## MAIN ENTRY POINT ##
 
-ensure_git_repo
+[[ "$subcmd" =~ he?l?p? ]] || ensure_git_repo
+
 case "$subcmd" in
   a|ad|add)
     add_subtree;;
