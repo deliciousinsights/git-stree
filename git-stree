@@ -53,7 +53,8 @@ fi
 # Defines a subtree and performs the initial injection in the working directory.
 # Does not create a commit out of it.  Some configuration is added to retain
 # subtree information (e.g. prefix, url, branch and latest sync'd commit).
-function add_subtree {
+function add_subtree
+{
   local name=$(require_name)
   require_arg 2 'Missing -P parameter' '-P' > /dev/null
   local prefix=$(require_arg 3 'Missing prefix')
@@ -83,35 +84,41 @@ function add_subtree {
 }
 
 # Helper: determines whether a branch exists
-function branch_exists {
+function branch_exists
+{
   [ "refs/heads/$1" == "$(git rev-parse --symbolic-full-name --verify --quiet "$1")" ]
 }
 
 # Helper: discreet info message.  This will show up in gray on STDOUT.
-function discreet {
+function discreet
+{
   message $GRAY "$@"
 }
 
 # Helper: makes sure we're not on a detached HEAD
-function ensure_attached_head {
+function ensure_attached_head
+{
   [ 'HEAD' != "$(git rev-parse --abbrev-ref --symbolic HEAD)" ] && return
   error false "You are apparently on a detached HEAD.  This is not a good point to commit from.  Checkout a branch."
 }
 
 # Helper: makes sure we're in a Git repo.  Piggy-backs on `git config --local`
 # to determine that, instead of traversing the filesystem upwards looking for `.git`.
-function ensure_git_repo {
+function ensure_git_repo
+{
   cmd=$(git rev-parse --is-inside-work-tree 2> /dev/null)
   [ "true" == "$cmd" ] || error false "You do not appear to be in a Git repository"
 }
 
 # Helper: makes sure there is nothing in the stage.
-function ensure_no_stage {
+function ensure_no_stage
+{
   git diff --cached --quiet || error false "You have staged changes already.  This should not get conflated with an upcoming STree commit.  Finalize your commit first or unstage your stuff."
 }
 
 # Helper: checks that the stree seems defined already.
-function ensure_stree_defined {
+function ensure_stree_defined
+{
   local name="$1"
   local remote_name=$(get_remote_name "$name")
   local root_key=$(get_root_key "$name")
@@ -124,7 +131,8 @@ function ensure_stree_defined {
 
 # Helper: error message.  This will show up in red on STDERR, followed by usage info,
 # then exit the script with exit code 1.
-function error {
+function error
+{
   show_usage=$1
   shift
   message $RED '✖︎ '"$@"$'\n' >&2
@@ -133,7 +141,8 @@ function error {
 }
 
 # Command: `git stree forget`
-function forget_subtrees {
+function forget_subtrees
+{
   for name in $(get_subtree_list simple); do
     rm_subtree "$name" && discreet "• Removed subtree '$name'"
   done
@@ -141,17 +150,20 @@ function forget_subtrees {
 }
 
 # Helper: computes a backport branch name based on the passed CLI name.
-function get_branch_name {
+function get_branch_name
+{
   echo "stree-backports-$(get_root_key "$1")"
 }
 
 # Helper: computes a remote name based on the passed CLI name.
-function get_remote_name {
+function get_remote_name
+{
   echo "stree-$(get_root_key "$1")"
 }
 
 # Helper: computes a root config key based on the passed CLI name.
-function get_root_key {
+function get_root_key
+{
   local result="$1"
   $has_iconv && result=$(echo "$result" | iconv -t 'ASCII//TRANSLIT//IGNORE')
   $has_tr && result=$(echo "$result" | tr A-Z a-z)
@@ -163,7 +175,8 @@ function get_root_key {
 # Helper: returns a list of 3-tuples, one for each defined stree.  Tuples are
 # three quoted strings: the stree’s name, its remoting (remote-name/remote-branch),
 # and its WD prefix subdirectory.
-function get_subtree_list {
+function get_subtree_list
+{
   git config --local --get-regexp 'remote\.stree.*\.url' | sort | while read key url; do
     local name="$(sed 's/remote\.stree-\|\.url//g' <<< "$key")"
     if [ 'simple' == "$1" ]; then
@@ -178,7 +191,8 @@ function get_subtree_list {
 }
 
 # Command: `git stree list [-v]`
-function list_subtrees {
+function list_subtrees
+{
   local list=$(get_subtree_list)
   local verbose=false
   [ "-v" == "${args[1]}" ] && verbose=true
@@ -208,14 +222,16 @@ function list_subtrees {
 }
 
 # Helper: info/success message.  This will show up in cyan on STDOUT.
-function meh {
+function meh
+{
   message $CYAN '✔︎ '"$@"$'\n'
 }
 
 # Helper: message.  Takes a color code as first arg, then the message as remaining
 # args.  Only injects VT100 ANSI codes if we're on a color-supporting TTY output
 # (which is detected using STDOUT, by the way, so YMMV when redirecting to STDERR).
-function message {
+function message
+{
   local color="$1"
   shift
   $is_tty && echo -en "\033[0;${color}m"
@@ -224,7 +240,8 @@ function message {
 }
 
 # Helper: normalizes a cwd-relative prefix so it starts from the root of the working directory.
-function normalize_prefix {
+function normalize_prefix
+{
   local root=$(dirname $(git rev-parse --git-dir))
 
   if [ '.' == "$root" ]; then
@@ -243,7 +260,8 @@ function normalize_prefix {
 
 # Helper: gets an argument from the CLI, if present, otherwise uses the default
 # passed as $2
-function optional_arg {
+function optional_arg
+{
   local result=${args[$1]}
   [ -n "$result" ] && echo "$result" || echo "$2"
 }
@@ -253,7 +271,8 @@ function optional_arg {
 # Pulls remote updates for a properly-configured subtree, and squash-merges them
 # as a single commit in the current branch.  This requires a non-detached HEAD and
 # an empty stage, so we don't conflate our work with ongoing commit construction.
-function pull_subtree {
+function pull_subtree
+{
   local name=$(require_name)
 
   ensure_attached_head
@@ -287,7 +306,8 @@ function pull_subtree {
 # a list of commits to be used since the last sync.  These commits are
 # cherry-picked on a special integration branch that first rebase-pulls
 # from upstream, then the new set is pushed back.
-function push_subtree {
+function push_subtree
+{
   local name=$(require_name)
 
   ensure_no_stage
@@ -355,7 +375,8 @@ function push_subtree {
 #
 # An error message *must* be provided as $1 should the argument be missing or incorrect.
 # In such a case, it's passed to `error`, thereby stopping the script.
-function require_arg {
+function require_arg
+{
   local result="${args[$1]}"
   [ -n "$3" -a "$3" != "$result" ] && result=''
   if [ "$result" ]; then
@@ -367,7 +388,8 @@ function require_arg {
 }
 
 # Helper: just a comfort wrapper over `require_arg` for the most common use case.
-function require_name {
+function require_name
+{
   require_arg 1 'Missing subtree name'
 }
 
@@ -375,7 +397,8 @@ function require_name {
 #
 # Removes all definitions (configuration entries) and backport branch for the given
 # subtree, but leaves the subdirectory contents in place.
-function rm_subtree {
+function rm_subtree
+{
   local name="$1"
   [ -z "$name" ] && name=$(require_name)
   local root_key=$(get_root_key "$name")
@@ -391,7 +414,8 @@ function rm_subtree {
 
 # Helper: usage display on STDERR.  Used when an error occurs or when the CLI
 # args don't start with a valid command.
-function usage {
+function usage
+{
   local cmd="$subcmd"
 
   if [ "help" == "$cmd" -a -n "${args[1]}" ]; then
