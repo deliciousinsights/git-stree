@@ -311,6 +311,16 @@ function push_subtree {
       meh "No local commits found for subtree '$name' since latest sync ($latest)"
       return
     fi
+  else
+    local parsed_ref
+    for ((i = 0; i < ${#commits[@]}; ++i)); do
+      parsed_ref=$(git rev-parse --short "${commits[$i]}" 2> /dev/null)
+      if [ 0 = $? ]; then
+        commits[$i]=$parsed_ref
+      else
+        error false "Cannot resolve commit: ${commits[$i]}"
+      fi
+    done
   fi
 
   local latest_head=$(git rev-parse --symbolic --abbrev-ref HEAD)
