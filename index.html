@@ -226,13 +226,26 @@ Date:   Sun Nov 9 12:10:49 2014 +0100
 
 <p>If you wish to remove all subtree settings, use <code>git stree forget</code> instead.</p>
 
+<h3>
+<a id="split" class="anchor" href="#split" aria-hidden="true"><span class="octicon octicon-link"></span></a>split</h3>
+
+<p>Perhaps you’d like to turn a part of your codebase, which up to now was always inside this repository, into a subtree.  This way, you could share it across other codebases.  We offer a <code>split</code> subcommand just for that.  It takes exactly the same arguments as <code>add</code>, only instead of grabbing the subtree from its remote, it creates it there (the remote has to exist and be ready for a first push).</p>
+
+<p>Say you have a <code>vendor/plugins/payment</code> subdirectory you want to turn into a subtree, to be pushed on a remote you’ve just created at <code>git@github.com:myorg/plugins-payment.git</code>.  Just use the following command:</p>
+
+<pre><code>$ git stree split payment -P vendor/plugins/payment git@github.com:myorg/plugins-payment.git
+✔︎ STree 'payment' configured, split and pushed.
+</code></pre>
+
+<p>You can now <code>add</code> that subtree in other repos, and maintain its subdirectory as if it had originally been imported with an <code>add</code>, too.</p>
+
 <h2>
 <a id="caveats" class="anchor" href="#caveats" aria-hidden="true"><span class="octicon octicon-link"></span></a>Caveats</h2>
 
 <ul>
 <li>Completion likely doesn't work on zsh just now, and perhaps not well on msysGit / Cygwin environments.</li>
 <li>Just like <code>git-subtree</code>, we advise strongly you keep local updates to your subtree in their own dedicated commits, to facilitate backporting some of these to the subtree's remote.</li>
-<li>Subtree settings currently remain local to your repo (in your local Git configuration).  Work is ongoing to provide subcommands facilitating the versioning and sharing of stree setttings.</li>
+<li>Subtree settings currently remain local to your repo (in your local Git configuration).  Work is ongoing to provide subcommands facilitating the versioning and sharing of stree settings.</li>
 </ul>
 
 <h2>
