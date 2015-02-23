@@ -514,6 +514,16 @@ EOT
 
 EOT
   fi
+  if [ -z "$cmd" -o "split" == "$cmd" ]; then
+    cat >&2 <<-EOT
+    stree split name -P path url [branch]
+
+      Creates a proper subtree branch from a subdirectory's contents and history.
+      Then the subtree's backport branch is configured and pushed (to either \`master\`
+      or the specified branch).
+
+EOT
+  fi
   if [ -z "$cmd" -o "help" == "$cmd" ]; then
     cat >&2 <<-EOT
     help [command]
