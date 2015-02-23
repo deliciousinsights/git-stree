@@ -419,7 +419,38 @@ function rm_subtree
 # or the specified branch).
 function split_subtree
 {
-  true
+  local name=$(require_name)
+  require_arg 2 'Missing -P parameter' '-P' > /dev/null
+  local prefix=$(require_arg 3 'Missing prefix')
+  prefix=$(normalize_prefix "$prefix")
+  local url=$(require_arg 4 'Missing URL')
+  local branch=$(optional_arg 5 'master')
+
+  local root_key=$(get_root_key "$name")
+  local remote_name=$(get_remote_name "$name")
+  if [ $(git config --local --get "remote.$remote_name.url") ]; then
+    error false "A remote already exists for '$name' ($remote_name). Subtree already defined?"
+  fi
+
+  ensure_attached_head
+  ensure_no_stage
+
+  local latest_head=$(git rev-parse --symbolic --abbrev-ref HEAD)
+  local branch_name=$(get_branch_name "$name")
+
+  if branch_exists "$branch_name"; then
+    error false "A subtree backport branch already exists for '$name' ($branch_name).  Subtree already defined/split?"
+  fi
+
+  git remote add -t "$branch" "$remote_name" "$url" &&
+    git config --local "stree.$root_key.prefix" "$prefix" &&
+    git config --local "stree.$root_key.branch" "$branch" &&
+    git checkout -b "$branch_name" --quiet &&
+    git filter-branch -f --subdirectory-filter "$prefix" > /dev/null &&
+    git push --quiet -u "$remote_name" "$branch_name":"$branch" > /dev/null &&
+    git config --local "stree.$root_key.latest-sync" "$(git rev-parse HEAD)" &&
+    git checkout --quiet --merge "$latest_head" &&
+    yay "STree '$root_key' configured, split and pushed."
 }
 
 # Helper: usage display on STDERR.  Used when an error occurs or when the CLI
