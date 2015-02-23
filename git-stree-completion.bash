@@ -35,13 +35,13 @@ function __git_stree_build_completion {
 # The main completion builder.
 function __git_stree_complete {
   local index=$((COMP_CWORD - __GIT_STREE_COMPLETE_OFFSET))
+  local cmd=${COMP_WORDS[$((1 + __GIT_STREE_COMPLETE_OFFSET))]}
+
   # Subcommand
-  if [ 1 -eq $index ]; then
-    __git_stree_build_completion "$(compgen -W "add forget help list pull push rm" "$2" )" ' '
+  if [ 1 -eq $index ] || [ 2 -eq $index -a "help" == "$cmd" ] ; then
+    __git_stree_build_completion "$(compgen -W "add forget help list pull push rm split" "$2" )" ' '
     return
   fi
-
-  local cmd=${COMP_WORDS[$((1 + __GIT_STREE_COMPLETE_OFFSET))]}
 
   # These take no arguments
   if [ 'forget' == "$cmd" -o "help" == "$cmd" ]; then
@@ -49,8 +49,8 @@ function __git_stree_complete {
   fi
 
   if [ 2 -eq $index ]; then
-    # add needs a new, unique name as second argument: can't complete on it
-    if [ 'add' == "$cmd" ]; then
+    # add/split needs a new, unique name as second argument: can't complete on it
+    if [ 'add' == "$cmd" -o 'split' == "$cmd" ]; then
       return
     fi
 
@@ -64,8 +64,8 @@ function __git_stree_complete {
     return
   fi
 
-  # Only 'add' takes more than 1 extra argument
-  [ 'add' == "$cmd" ] || return
+  # Only 'add' / 'split' take more than 1 extra argument
+  [ 'add' == "$cmd" -o 'split' == "$cmd" ] || return
 
   # 3: -P mandatory option
   if [ 3 -eq $index ]; then
