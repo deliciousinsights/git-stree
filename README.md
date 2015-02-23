@@ -181,6 +181,19 @@ $ git stree rm payment
 
 If you wish to remove all subtree settings, use `git stree forget` instead.
 
+### split
+
+Perhaps you’d like to turn a part of your codebase, which up to now was always inside this repository, into a subtree.  This way, you could share it across other codebases.  We offer a `split` subcommand just for that.  It takes exactly the same arguments as `add`, only instead of grabbing the subtree from its remote, it creates it there (the remote has to exist and be ready for a first push).
+
+Say you have a `vendor/plugins/payment` subdirectory you want to turn into a subtree, to be pushed on a remote you’ve just created at `git@github.com:myorg/plugins-payment.git`.  Just use the following command:
+
+```
+$ git stree split payment -P vendor/plugins/payment git@github.com:myorg/plugins-payment.git
+✔︎ STree 'payment' configured, split and pushed.
+```
+
+You can now `add` that subtree in other repos, and maintain its subdirectory as if it had originally been imported with an `add`, too.
+
 ## Caveats
 
   * Completion likely doesn't work on zsh just now, and perhaps not well on msysGit / Cygwin environments.
