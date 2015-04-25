@@ -143,10 +143,18 @@ function error
 # Command: `git stree forget`
 function forget_subtrees
 {
-  for name in $(get_subtree_list simple); do
-    rm_subtree "$name" && discreet "• Removed subtree '$name'"
-  done
-  yay 'Successfully removed all subtree definitions.'
+  if [ -z "${args[1]}" ]; then
+    for name in $(get_subtree_list simple); do
+      rm_subtree "$name" && discreet "• Removed subtree '$name'"
+    done
+    yay 'Successfully removed all subtree definitions.'
+  else
+    error false "This is not the command you're looking for.
+git stree forget removes all subtrees defined for this repository.
+You specified a specific subtree ($1) on the command line,
+so you probably want: git stree rm $1
+"
+  fi
 }
 
 # Helper: computes a backport branch name based on the passed CLI name.
