@@ -143,6 +143,16 @@ function error
 # Command: `git stree forget`
 function forget_subtrees
 {
+  if [ -n "${args[1]}" ]; then
+    error false "This is not the command you're looking for.
+
+git stree forget removes all subtrees defined for this repository.  You
+specified a specific subtree (${args[1]}) on the command line, so you probably
+want:
+
+    git stree rm ${args[1]}"
+  fi
+
   for name in $(get_subtree_list simple); do
     rm_subtree "$name" && discreet "• Removed subtree '$name'"
   done
