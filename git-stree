@@ -38,6 +38,7 @@ CYAN=36
 GRAY=37
 GREEN=32
 RED=31
+YELLOW=33
 
 # Grabbing CLI arguments and the main subcommand
 args=("$@")
@@ -68,6 +69,8 @@ function add_subtree
     error false "A remote already exists for '$name' ($remote_name). Subtree already defined?"
   fi
 
+  check_conflicting_strees "$prefix"
+
   ensure_attached_head
   ensure_no_stage
 
@@ -77,16 +80,54 @@ function add_subtree
     git config --local "stree.$root_key.branch" "$branch" &&
     git read-tree --prefix="$prefix" -u "$remote_name/$branch" &&
     git commit -m "[STree] Added stree '$root_key' in $prefix" &&
-    git config --local "stree.$root_key.latest-sync" "$(git rev-parse --short HEAD)"
+    git config --local "stree.$root_key.latest-sync" "$(git rev-parse --short HEAD)" &&
+    echo '' &&
+    yay "STree '$root_key' configured, 1st injection committed." ||
 
-  echo ''
-  yay "STree '$root_key' configured, 1st injection committed."
+    echo '' &&
+    git remote rm "$remote_name" &&
+    git config --local --remove-section "stree.$root_key" &&
+    error false "STree '$root_key' could not be configured."
 }
 
 # Helper: determines whether a branch exists
 function branch_exists
 {
   [ "refs/heads/$1" == "$(git rev-parse --symbolic-full-name --verify --quiet "$1")" ]
+}
+
+# Helper: maintains detected stree conflict state in a file, to work across subshell boundaries.
+function has_conflicts
+{
+  local sentinel="$(git rev-parse --git-dir)/STREE_CONFLICTS"
+  case "$1" in
+    yes)   echo 'yes' > "$sentinel";;
+    reset) rm -f "$sentinel" && false;;
+    *)     [ -f "$sentinel" ] && [ "yes" = "$(cat "$sentinel")" ];;
+  esac
+}
+
+# Helper: checks that the passed path doesn't conflict with existing stree
+# definitions.  If it does, lists them, and asks for confirmation.  Refusal
+# stops the script.
+function check_conflicting_strees()
+{
+  local path="$1"
+  local list=$(get_subtree_list)
+  has_conflicts reset
+
+  echo "$list" | while read stree remoting prefix; do
+    [ "$prefix" != "$path" ] && continue
+
+    has_conflicts || message $YELLOW "Existing strees use that prefix already:"
+    message $YELLOW "  • $stree ($remoting)"
+    has_conflicts yes
+  done
+
+  has_conflicts || return
+  has_conflicts reset
+
+  confirm N "Do you want to proceed and setup another stree with that same prefix?"
 }
 
 # Command: `git stree clear`
@@ -110,6 +151,29 @@ want:
     rm_subtree "$name" && discreet "• Removed subtree '$name'"
   done
   yay 'Successfully cleared all subtree definitions.'
+}
+
+# Helper: confirms with a Y/N question and repeat until a proper answer is given.
+# Arguments: color, default (Y or N), message
+function confirm
+{
+  local question="Yn"
+  local reply="$1"
+
+  [ "N" = "$reply" ] && question="yN"
+
+  while true; do
+    $is_tty && echo -en "\033[0;${CYAN}m"
+    read -r -n 1 -p "$2 [$question] " reply
+    $is_tty && echo -en "\033[0m"
+
+    reply=$(echo "$reply" | tr a-z A-Z)
+    [ -z "$reply" ] && reply="$1"
+    [ "Y" = "$reply" -o "N" = "$reply" ] && break
+    echo ''
+  done
+
+  [ "N" = "$reply" ] && exit 42
 }
 
 # Helper: discreet info message.  This will show up in gray on STDOUT.
