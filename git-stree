@@ -40,6 +40,15 @@ GREEN=32
 RED=31
 YELLOW=33
 
+# Symbols
+if [ "cygwin" = "$TERM" ]; then
+  CHECK="√"
+  CROSS="X"
+else
+  CHECK="✔"
+  CROSS="✖"
+fi
+
 # Grabbing CLI arguments and the main subcommand
 args=("$@")
 subcmd=${args[0]}
@@ -222,7 +231,7 @@ function error
 {
   show_usage=$1
   shift
-  message $RED '✖︎ '"$@"$'\n' >&2
+  message $RED "︎$CROSS ""$@"$'\n' >&2
   $show_usage && usage
   kill -s ABRT $$
 }
@@ -654,7 +663,7 @@ EOT
 
 # Helper: success message.  This will show up in green on STDOUT.
 function yay {
-  message $GREEN '✔︎ '"$@"$'\n'
+  message $GREEN "$CHECK ""$@"$'\n'
 }
 
 # Allow subshells (such as functions called within a `$(…)` subshell)
