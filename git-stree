@@ -29,7 +29,7 @@
 [ -n "$STREE_DEBUG" ] && set -x
 
 # Env/context-related flags so we know what extra commands can be called upon.
-tty -s <&1 && [[ "$TERM"=~"color" ]] && is_tty=true || is_tty=false
+{ [ "cygwin" = "$TERM" ] || { tty -s <&1 && [[ "$TERM"=~"color" ]]; }; } && is_tty=true || is_tty=false
 { echo "foo" | iconv -t 'ASCII' &> /dev/null; } && has_iconv=true || has_iconv=false
 { echo "foo" | tr A-Z a-z &> /dev/null; } && has_tr=true || has_tr=false
 
