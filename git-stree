@@ -296,20 +296,27 @@ function pull_subtree
   local root_key=$(get_root_key "$name")
   local remote=$(get_remote_name "$name")
   local branch=$(git config --local "stree.$root_key.branch")
+  local log_size=$(echo "${args[@]}" | sed -n 's/^.*--log=\([0-9]\+\).*$/\1/p')
+  [ -z "$log_size" ] && log_size=20
 
   git fetch --quiet "$remote" &&
-    git merge --quiet -s subtree --squash --log "$remote/$branch" &> /dev/null || exit $?
+    git merge --quiet -s subtree --squash --log=$log_size "$remote/$branch" &> /dev/null || exit $?
 
   echo ''
 
   if git diff --cached --quiet; then
     meh "STree '$root_key' pulled, but no updates found."
   else
+    local latest_sync=$(git config --local "stree.$root_key.latest-sync")
+    [ -n "$latest_sync" ] || latest_sync='(use all)'
+
     local msg_file="$(git rev-parse --git-dir)/SQUASH_MSG"
-    local msg="[STree] Pulled stree '$root_key'"$'\n\n'"$(cat "$msg_file")"
-    git commit -m "$msg" &&
-    git config --local "stree.$root_key.latest-sync" "$(git rev-parse HEAD)"
-    yay "STree '$root_key' pulled, updates committed."
+    local msg="[STree] Pulled stree '$root_key'"$'\n\n'"$(sed "/^commit $latest_sync/,100000d" "$msg_file")"
+    echo "$msg" > "$msg_file"
+    local commits=$(grep --count '^commit ' "$msg_file")
+    git commit -F "$msg_file" &&
+    git config --local "stree.$root_key.latest-sync" "$(git rev-parse --short HEAD)"
+    yay "STree '$root_key' pulled, $commits update(s) committed."
   fi
 }
 
@@ -529,12 +536,15 @@ EOT
   fi
   if [ -z "$cmd" -o "pull" == "$cmd" ]; then
     cat >&2 <<-EOT
-    pull name
+    pull name [--log=20]
 
       Attempts to pull remote updates for a subtree you already defined.
       This is a no-rebase, squash-commit update that will not create any
       extra line in your history graph, but result in a single update commit
       on your current branch.
+
+      If you wish to change the maximum number of merged commits info in the
+      resulting squash commit, use the --log= option.  Defaults to 20.
 
 EOT
   fi

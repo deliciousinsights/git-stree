@@ -64,7 +64,13 @@ function __git_stree_complete {
     return
   fi
 
-  # Only 'add' / 'split' take more than 1 extra argument
+  # 'pull' accepts 1 fixed extra argument: '--log=<n>'
+  if [ 'pull' == "$cmd" ] && [ 3 -eq $index ] && [ '--log=' != "${COMP_WORDS[3]}" ]; then
+    COMPREPLY=("--log=")
+    return
+  fi
+
+  # Besides 'pull', only 'add' / 'split' take more than 1 extra argument
   [ 'add' == "$cmd" -o 'split' == "$cmd" ] || return
 
   # 3: -P mandatory option
