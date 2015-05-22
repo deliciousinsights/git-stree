@@ -83,7 +83,7 @@ function add_subtree
   ensure_attached_head
   ensure_no_stage
 
-  git remote add -t "$branch" "$remote_name" "$url" &&
+  { git remote add -t "$branch" "$remote_name" "$url" &&
     git fetch --quiet "$remote_name" &&
     git config --local "stree.$root_key.prefix" "$prefix" &&
     git config --local "stree.$root_key.branch" "$branch" &&
@@ -91,12 +91,13 @@ function add_subtree
     git commit -m "[STree] Added stree '$root_key' in $prefix" &&
     git config --local "stree.$root_key.latest-sync" "$(git rev-parse --short HEAD)" &&
     echo '' &&
-    yay "STree '$root_key' configured, 1st injection committed." ||
-
+    yay "STree '$root_key' configured, 1st injection committed.";
+  } || {
     echo '' &&
     git remote rm "$remote_name" &&
     git config --local --remove-section "stree.$root_key" &&
-    error false "STree '$root_key' could not be configured."
+    error false "STree '$root_key' could not be configured.";
+  }
 }
 
 # Helper: determines whether a branch exists
