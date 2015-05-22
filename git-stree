@@ -29,7 +29,7 @@
 [ -n "$STREE_DEBUG" ] && set -x
 
 # Env/context-related flags so we know what extra commands can be called upon.
-tty -s <&1 && [[ "$TERM" =~ color ]] && is_tty=true || is_tty=false
+tty -s <&1 && [[ "$TERM"=~"color" ]] && is_tty=true || is_tty=false
 { echo "foo" | iconv -t 'ASCII' &> /dev/null; } && has_iconv=true || has_iconv=false
 { echo "foo" | tr A-Z a-z &> /dev/null; } && has_tr=true || has_tr=false
 
@@ -261,7 +261,7 @@ function normalize_prefix
 
   local path="$(pwd -P)/$1"
   path="${path//\/.\//\/}"
-  while [[ "$path" =~ ([^/][^/]*/\.\./) ]]; do
+  while [[ "$path"=~"([^/][^/]*/\.\./)" ]]; do
     path="${path/${BASH_REMATCH[0]}/}"
   done
 
@@ -475,7 +475,7 @@ function usage
     cmd=""
   fi
 
-  if ! [[ "@add@forget@help@list@pull@push@rm@split@" =~ "@$cmd@" ]]; then
+  if ! [[ "@add@forget@help@list@pull@push@rm@split@"=~"@$cmd@" ]]; then
     cmd=""
   fi
 
@@ -589,7 +589,7 @@ trap exit1 ABRT
 
 ## MAIN ENTRY POINT ##
 
-[[ "$subcmd" =~ he?l?p? ]] || ensure_git_repo
+[[ "$subcmd"=~"he?l?p?" ]] || ensure_git_repo
 
 case "$subcmd" in
   a|ad|add)
