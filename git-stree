@@ -89,6 +89,29 @@ function branch_exists
   [ "refs/heads/$1" == "$(git rev-parse --symbolic-full-name --verify --quiet "$1")" ]
 }
 
+# Command: `git stree clear`
+function clear_subtrees
+{
+  if [ -n "${args[1]}" ]; then
+    error false "This is not the command you're looking for.
+
+git stree clear removes all subtrees defined for this repository.  You
+specified a specific subtree (${args[1]}) on the command line, so you probably
+want:
+
+    git stree rm ${args[1]}"
+  fi
+
+  if [ "$subcmd" == "forget" ]; then
+    message $CYAN "git stree forget has been deprecated: use git stree clear instead."
+  fi
+
+  for name in $(get_subtree_list simple); do
+    rm_subtree "$name" && discreet "• Removed subtree '$name'"
+  done
+  yay 'Successfully cleared all subtree definitions.'
+}
+
 # Helper: discreet info message.  This will show up in gray on STDOUT.
 function discreet
 {
@@ -138,25 +161,6 @@ function error
   message $RED '✖︎ '"$@"$'\n' >&2
   $show_usage && usage
   kill -s ABRT $$
-}
-
-# Command: `git stree forget`
-function forget_subtrees
-{
-  if [ -n "${args[1]}" ]; then
-    error false "This is not the command you're looking for.
-
-git stree forget removes all subtrees defined for this repository.  You
-specified a specific subtree (${args[1]}) on the command line, so you probably
-want:
-
-    git stree rm ${args[1]}"
-  fi
-
-  for name in $(get_subtree_list simple); do
-    rm_subtree "$name" && discreet "• Removed subtree '$name'"
-  done
-  yay 'Successfully removed all subtree definitions.'
 }
 
 # Helper: computes a backport branch name based on the passed CLI name.
@@ -475,7 +479,7 @@ function usage
     cmd=""
   fi
 
-  if ! [[ "@add@forget@help@list@pull@push@rm@split@"=~"@$cmd@" ]]; then
+  if ! [[ "@add@clear@forget@help@list@pull@push@rm@split@"=~"@$cmd@" ]]; then
     cmd=""
   fi
 
@@ -504,9 +508,9 @@ EOT
 
 EOT
   fi
-  if [ -z "$cmd" -o "forget" == "$cmd" ]; then
+  if [ -z "$cmd" -o "forget" == "$cmd" -o "clear" == "$cmd" ]; then
     cat >&2 <<-EOT
-    forget
+    clear (formerly "forget")
 
       "Forgets" all subtrees if no identifiers are passed.  This essentially
       does \`git stree rm\` over each subtree in turn.
@@ -594,8 +598,8 @@ trap exit1 ABRT
 case "$subcmd" in
   a|ad|add)
     add_subtree;;
-  f|fo|for|forg|forge|forget)
-    forget_subtrees;;
+  c|cl|cle|clea|clear|f|fo|for|forg|forge|forget)
+    clear_subtrees;;
   l|li|lis|list)
     list_subtrees;;
   pul|pull)

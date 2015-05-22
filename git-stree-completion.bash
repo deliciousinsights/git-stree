@@ -39,12 +39,12 @@ function __git_stree_complete {
 
   # Subcommand
   if [ 1 -eq $index ] || [ 2 -eq $index -a "help" == "$cmd" ] ; then
-    __git_stree_build_completion "$(compgen -W "add forget help list pull push rm split" "$2" )" ' '
+    __git_stree_build_completion "$(compgen -W "add clear help list pull push rm split" "$2" )" ' '
     return
   fi
 
   # These take no arguments
-  if [ 'forget' == "$cmd" -o "help" == "$cmd" ]; then
+  if [ 'clear' == "$cmd" -o "help" == "$cmd" ]; then
     return
   fi
 
