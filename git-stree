@@ -450,7 +450,7 @@ function push_subtree
       error false "Could not cherry-pick $(git show -s --oneline "$commit")"
   done
 
-  git push --quiet &&
+  git push --quiet "$remote_name" "$branch_name":"$branch" &&
   git checkout --quiet --merge "$latest_head" &&
   yay "STree '$name' successfully backported local changes to its remote"
 }
