@@ -315,18 +315,19 @@ function list_subtrees
 # Generate a syncing file for cross-repo syncing. Reads the --local .git/config file.
 function generate_sync_file() {
   local conf=$(git config --local -l)
+  local file=$(git rev-parse --show-toplevel)"/$SYNC_FNAME"
 
-  touch $SYNC_FNAME
-  echo -e '' > $SYNC_FNAME
+  touch $file
+  echo -e '' > $file
 
   for confline in $conf;
   do
     if [[ "$confline" == "remote.stree-"* ]]; then
       IFS='=' read key val <<< "$confline"
-      git config --file="$SYNC_FNAME" "$key" "$val"
+      git config --file="$file" "$key" "$val"
     elif [[ "$confline" == "stree."* ]]; then
       IFS='=' read key val <<< "$confline"
-      git config --file="$SYNC_FNAME" "$key" "$val"
+      git config --file="$file" "$key" "$val"
     fi
 
   done
