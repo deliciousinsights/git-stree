@@ -309,6 +309,12 @@ function list_subtrees
   done
 }
 
+# Helper: iterate a function with subtree name which got from list_subtrees
+function listed_subtrees_do
+{
+    list_subtrees | while read _ key __; do $1 "$(sed -E 's/(^remote\.stree\-|\.url$)//g' <<< "$key")"; done
+}
+
 # Helper: info/success message.  This will show up in cyan on STDOUT.
 function meh
 {
@@ -361,7 +367,20 @@ function optional_arg
 # an empty stage, so we don't conflate our work with ongoing commit construction.
 function pull_subtree
 {
-  local name=$(require_name)
+  _pull_subtree $(require_name)
+}
+
+# Command: `git stree pullall[pla|pulla]`
+#
+# Pulls all of listed subtrees via `git stree pull name`
+function pull_all_subtree
+{
+  listed_subtrees_do _pull_subtree
+}
+
+function _pull_subtree
+{
+  local name=$1
 
   ensure_attached_head
   ensure_no_stage
@@ -403,7 +422,20 @@ function pull_subtree
 # from upstream, then the new set is pushed back.
 function push_subtree
 {
-  local name=$(require_name)
+  _push_subtree $(require_name)
+}
+
+# Command: `git stree pushall [psa|pusha]`
+#
+# Pushes all of listed subtrees via 'git stree push'
+function push_all_subtree
+{
+  listed_subtrees_do _push_subtree
+}
+
+function _push_subtree
+{
+  local name=$1
 
   ensure_no_stage
   ensure_stree_defined "$name"
@@ -505,6 +537,12 @@ function rm_subtree
   git branch -D "$branch_name" &> /dev/null
   [ -z "$1" ] && yay "All settings removed for STree '$root_key'."
   true
+}
+
+# Command: `git stree rma[ra|rmall]`
+function rm_all_subtree
+{
+  listed_subtrees_do rm_subtree
 }
 
 # Command: `git stree split name -P path url [branch]`
@@ -611,6 +649,7 @@ EOT
   if [ -z "$cmd" -o "pull" == "$cmd" ]; then
     cat >&2 <<-EOT
     pull name [--log=20]
+    pullall
 
       Attempts to pull remote updates for a subtree you already defined.
       This is a no-rebase, squash-commit update that will not create any
@@ -625,6 +664,7 @@ EOT
   if [ -z "$cmd" -o "push" == "$cmd" ]; then
     cat >&2 <<-EOT
     push name [commits...]
+    pushall
 
       Pushes your local work on the subtree to its defined remote.  If you
       specify commits, only these will be cherry-picked. Otherwise, it will
@@ -637,6 +677,7 @@ EOT
   if [ -z "$cmd" -o "rm" == "$cmd" ]; then
     cat >&2 <<-EOT
     rm name
+    rmall
 
       Removes all definitions for the given subtree (but leaves the subdirectory
       contents in place).
@@ -688,10 +729,16 @@ case "$subcmd" in
     list_subtrees;;
   pul|pull)
     pull_subtree;;
+  pla|pulla|pullall)
+    pull_all_subtree;;
   pus|push)
     push_subtree;;
+  psa|pusha|pushall)
+    push_all_subtree;;
   r|rm)
     rm_subtree;;
+  ra|rma|rmall)
+    rm_all_subtree;;
   s|sp|spl|spli|split)
     split_subtree;;
   ""|*)
