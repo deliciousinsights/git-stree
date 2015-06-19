@@ -371,10 +371,11 @@ function pull_subtree
   local remote=$(get_remote_name "$name")
   local branch=$(git config --local "stree.$root_key.branch")
   local log_size=$(echo "${args[@]}" | sed -n 's/^.*--log=\([0-9]\+\).*$/\1/p')
+  local prefix=$(git config --local "stree.$root_key.prefix")
   [ -z "$log_size" ] && log_size=20
 
   git fetch --quiet "$remote" &&
-    git merge --quiet -s subtree --squash --log=$log_size "$remote/$branch" &> /dev/null || exit $?
+    git merge --quiet -s subtree --squash --log=$log_size -Xsubtree="$prefix" "$remote/$branch" &> /dev/null || exit $?
 
   echo ''
 
