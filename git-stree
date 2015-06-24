@@ -336,13 +336,16 @@ function normalize_prefix
     echo "$1"
     return
   fi
-
-  local path="$(pwd -P)/$1"
-  path="${path//\/.\//\/}"
-  while [[ "$path"=~"([^/][^/]*/\.\./)" ]]; do
-    path="${path/${BASH_REMATCH[0]}/}"
-  done
-
+  if [ -n "`which readlink`" ]
+  then
+    local path=$(readlink -m $1)
+  else
+    local path="$(pwd -P)/$1"
+    path="${path//\/.\//\/}"
+    while [[ "$path"=~"([^/][^/]*/\.\./)" ]]; do
+      path="${path/${BASH_REMATCH[0]}/}"
+    done
+  fi
   sed "s@$root/@@" <<< "$path"
 }
 
