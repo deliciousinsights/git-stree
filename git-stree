@@ -336,7 +336,13 @@ function normalize_prefix
     echo "$1"
     return
   fi
-  if [ -n "`which readlink`" ]
+
+  if [ -n `ls -1d "$1"` ]
+  then
+    pushd $1
+    local path=`pwd`
+    popd
+  elif [ -n "`which readlink`" ]
   then
     local path=$(readlink -m $1)
   else
