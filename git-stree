@@ -57,6 +57,7 @@ if [ -n "$subcmd" -a "--help" == "${args[1]}" ]; then
   args[1]="$subcmd"
   subcmd="${args[0]}"
 fi
+extra_args=("${args[@]:2}")
 
 # Command: `git stree add name -P prefix url [branch]`
 #
@@ -362,6 +363,7 @@ function optional_arg
 function pull_subtree
 {
   local name=$(require_name)
+  local merge_args=${@:-"--quiet"}
 
   ensure_attached_head
   ensure_no_stage
@@ -375,7 +377,8 @@ function pull_subtree
   [ -z "$log_size" ] && log_size=20
 
   git fetch --quiet "$remote" &&
-    git merge --quiet -s subtree --squash --log=$log_size -Xsubtree="$prefix" "$remote/$branch" &> /dev/null || exit $?
+    git merge ${merge_args[@]} -s recursive -X subtree="$prefix" --squash --log=$log_size "$remote/$branch" &> /dev/null ||
+      error false "Stree '$root_key' pulled, conflicts remain which you must merge."
 
   echo ''
 
@@ -688,7 +691,7 @@ case "$subcmd" in
   l|li|lis|list)
     list_subtrees;;
   pul|pull)
-    pull_subtree;;
+    pull_subtree ${extra_args[@]};;
   pus|push)
     push_subtree;;
   r|rm)
