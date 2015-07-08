@@ -271,7 +271,7 @@ function get_root_key
 }
 
 # Helper: returns a list of 3-tuples, one for each defined stree.  Tuples are
-# three quoted strings: the streeâ€™s name, its remoting (remote-name/remote-branch),
+# three quoted strings: the stree’s name, its remoting (remote-name/remote-branch),
 # and its WD prefix subdirectory.
 function get_subtree_list
 {
