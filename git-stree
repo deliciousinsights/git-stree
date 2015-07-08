@@ -45,11 +45,11 @@ YELLOW=33
 
 # Symbols
 if [ "cygwin" = "$TERM" ]; then
-  CHECK="âˆš"
+  CHECK="√"
   CROSS="X"
 else
-  CHECK="âœ”"
-  CROSS="âœ–"
+  CHECK="✔"
+  CROSS="✖"
 fi
 
 # Grabbing CLI arguments and the main subcommand
@@ -140,7 +140,7 @@ function check_conflicting_strees()
     [ "$prefix" != "$path" ] && continue
 
     has_conflicts || message $YELLOW "Existing strees use that prefix already:"
-    message $YELLOW "  â€¢ $stree ($remoting)"
+    message $YELLOW "  • $stree ($remoting)"
     has_conflicts yes
   done
 
@@ -168,7 +168,7 @@ want:
   fi
 
   for name in $(get_subtree_list simple); do
-    rm_subtree "$name" && discreet "â€¢ Removed subtree '$name'"
+    rm_subtree "$name" && discreet "• Removed subtree '$name'"
   done
   yay 'Successfully cleared all subtree definitions.'
 }
@@ -242,7 +242,7 @@ function error
 {
   show_usage=$1
   shift
-  message $RED "ï¸Ž$CROSS ""$@"$'\n' >&2
+  message $RED "︎$CROSS ""$@"$'\n' >&2
   $show_usage && usage
   kill -s ABRT $$
 }
@@ -303,7 +303,7 @@ function list_subtrees
     branch_exists "$branch_name" && backports=true
     $backports && backporting=" (backports through $branch_name)"
 
-    echo "â€¢ $stree [$prefix] <=> $remoting$backporting"
+    echo "• $stree [$prefix] <=> $remoting$backporting"
     if $verbose; then
       local latest_sha=$(git config --local "stree.$stree.latest-sync")
       local infix=''
@@ -341,7 +341,7 @@ function sync_gitstrees() {
 # Helper: info/success message.  This will show up in cyan on STDOUT.
 function meh
 {
-  message $CYAN 'âœ”ï¸Ž '"$@"$'\n'
+  message $CYAN '✔︎ '"$@"$'\n'
 }
 
 # Helper: message.  Takes a color code as first arg, then the message as remaining
@@ -487,7 +487,7 @@ function push_subtree
     git cherry-pick -x -X subtree="$prefix" "$commit" > /dev/null &&
       git config --local "stree.$root_key.latest-sync" "$commit" &&
       git config --file="$GITSTREES" "stree.$root_key.latest-sync" "$commit" &&
-      discreet "â€¢ $(git show -s --oneline "$commit")" ||
+      discreet "• $(git show -s --oneline "$commit")" ||
       error false "Could not cherry-pick $(git show -s --oneline "$commit")"
   done
 
@@ -611,7 +611,7 @@ Usage: $0 sub-command [options...]
 EOT
   else
     cat >&2 <<-EOT
-Usage: $0 $cmd [optionsâ€¦]
+Usage: $0 $cmd [options…]
 
 EOT
   fi
@@ -695,7 +695,7 @@ EOT
     cat >&2 <<-EOT
     help [command]
 
-      Displays this usage information, or the commandâ€™s usage information.
+      Displays this usage information, or the command’s usage information.
 EOT
   fi
 }
@@ -705,7 +705,7 @@ function yay {
   message $GREEN "$CHECK ""$@"$'\n'
 }
 
-# Allow subshells (such as functions called within a `$(â€¦)` subshell)
+# Allow subshells (such as functions called within a `$(…)` subshell)
 # to exit the parent script (the main `git-stree` script) by sending it
 # an ABRT (6) signal.  See `error` for the trigger side of this.
 function exit1 {
