@@ -33,6 +33,9 @@
 { echo "foo" | iconv -t 'ASCII' &> /dev/null; } && has_iconv=true || has_iconv=false
 { echo "foo" | tr A-Z a-z &> /dev/null; } && has_tr=true || has_tr=false
 
+# .gitstrees path
+GITSTREES="$(git rev-parse --show-toplevel)/.gitstrees"
+
 # Color constants (VT100 ANSI codes)
 CYAN=36
 GRAY=37
@@ -42,11 +45,11 @@ YELLOW=33
 
 # Symbols
 if [ "cygwin" = "$TERM" ]; then
-  CHECK="√"
+  CHECK="âˆš"
   CROSS="X"
 else
-  CHECK="✔"
-  CROSS="✖"
+  CHECK="âœ”"
+  CROSS="âœ–"
 fi
 
 # Grabbing CLI arguments and the main subcommand
@@ -85,17 +88,24 @@ function add_subtree
 
   { git remote add -t "$branch" "$remote_name" "$url" &&
     git fetch --quiet "$remote_name" &&
+    git config --file="$GITSTREES" "remote.$remote_name.url" "$(git config --get remote.$remote_name.url)" &&
+    git config --file="$GITSTREES" "remote.$remote_name.fetch" "$(git config --get remote.$remote_name.fetch)" &&
     git config --local "stree.$root_key.prefix" "$prefix" &&
+    git config --file="$GITSTREES" "stree.$root_key.prefix" "$prefix" &&
     git config --local "stree.$root_key.branch" "$branch" &&
+    git config --file="$GITSTREES" "stree.$root_key.branch" "$branch" &&
     git read-tree --prefix="$prefix" -u "$remote_name/$branch" &&
     git commit -m "[STree] Added stree '$root_key' in $prefix" &&
     git config --local "stree.$root_key.latest-sync" "$(git rev-parse --short HEAD)" &&
+    git config --file="$GITSTREES" "stree.$root_key.latest-sync" "$(git rev-parse --short HEAD)" &&
     echo '' &&
     yay "STree '$root_key' configured, 1st injection committed.";
   } || {
     echo '' &&
     git remote rm "$remote_name" &&
+    git config --file="$GITSTREES" --remove-section "remote.$remote_name" &&
     git config --local --remove-section "stree.$root_key" &&
+    git config --file="$GITSTREES" --remove-section "stree.$root_key" &&
     error false "STree '$root_key' could not be configured.";
   }
 }
@@ -130,7 +140,7 @@ function check_conflicting_strees()
     [ "$prefix" != "$path" ] && continue
 
     has_conflicts || message $YELLOW "Existing strees use that prefix already:"
-    message $YELLOW "  • $stree ($remoting)"
+    message $YELLOW "  â€¢ $stree ($remoting)"
     has_conflicts yes
   done
 
@@ -158,7 +168,7 @@ want:
   fi
 
   for name in $(get_subtree_list simple); do
-    rm_subtree "$name" && discreet "• Removed subtree '$name'"
+    rm_subtree "$name" && discreet "â€¢ Removed subtree '$name'"
   done
   yay 'Successfully cleared all subtree definitions.'
 }
@@ -232,7 +242,7 @@ function error
 {
   show_usage=$1
   shift
-  message $RED "︎$CROSS ""$@"$'\n' >&2
+  message $RED "ï¸Ž$CROSS ""$@"$'\n' >&2
   $show_usage && usage
   kill -s ABRT $$
 }
@@ -261,7 +271,7 @@ function get_root_key
 }
 
 # Helper: returns a list of 3-tuples, one for each defined stree.  Tuples are
-# three quoted strings: the stree’s name, its remoting (remote-name/remote-branch),
+# three quoted strings: the streeâ€™s name, its remoting (remote-name/remote-branch),
 # and its WD prefix subdirectory.
 function get_subtree_list
 {
@@ -293,7 +303,7 @@ function list_subtrees
     branch_exists "$branch_name" && backports=true
     $backports && backporting=" (backports through $branch_name)"
 
-    echo "• $stree [$prefix] <=> $remoting$backporting"
+    echo "â€¢ $stree [$prefix] <=> $remoting$backporting"
     if $verbose; then
       local latest_sha=$(git config --local "stree.$stree.latest-sync")
       local infix=''
@@ -309,10 +319,29 @@ function list_subtrees
   done
 }
 
+# Helper: sync local config and .gitstrees
+function sync_gitstrees() {
+  local conf="$(git config --file=$GITSTREES -l)"
+  
+  for confline in $conf;
+  do
+    if [[ "$confline" == "remote.stree-"* ]]; then
+      IFS='=' read key val <<< "$confline"
+      git config --local "$key" "$val"
+    elif [[ "$confline" == "stree."* ]]; then
+      IFS='=' read key val <<< "$confline"
+      git config --local "$key" "$val"
+    fi
+
+  done
+
+  meh "Strees configuration files synced!"
+}
+
 # Helper: info/success message.  This will show up in cyan on STDOUT.
 function meh
 {
-  message $CYAN '✔︎ '"$@"$'\n'
+  message $CYAN 'âœ”ï¸Ž '"$@"$'\n'
 }
 
 # Helper: message.  Takes a color code as first arg, then the message as remaining
@@ -390,6 +419,7 @@ function pull_subtree
     local commits=$(grep --count '^commit ' "$msg_file")
     git commit -F "$msg_file" &&
     git config --local "stree.$root_key.latest-sync" "$(git rev-parse --short HEAD)"
+    git config --file="$GITSTREES" "stree.$root_key.latest-sync" "$(git rev-parse --short HEAD)"
     yay "STree '$root_key' pulled, $commits update(s) committed."
   fi
 }
@@ -456,7 +486,8 @@ function push_subtree
   for commit in "${commits[@]}"; do
     git cherry-pick -x -X subtree="$prefix" "$commit" > /dev/null &&
       git config --local "stree.$root_key.latest-sync" "$commit" &&
-      discreet "• $(git show -s --oneline "$commit")" ||
+      git config --file="$GITSTREES" "stree.$root_key.latest-sync" "$commit" &&
+      discreet "â€¢ $(git show -s --oneline "$commit")" ||
       error false "Could not cherry-pick $(git show -s --oneline "$commit")"
   done
 
@@ -501,8 +532,10 @@ function rm_subtree
   local branch_name=$(get_branch_name "$name")
 
   git config --local --remove-section "stree.$root_key" &> /dev/null
+  git config --file="$GITSTREES" --remove-section "stree.$root_key" &> /dev/null
   git remote rm "$remote_name" &> /dev/null
   git branch -D "$branch_name" &> /dev/null
+  git config --file="$GITSTREES" --remove-section "remote.$remote_name" &> /dev/null
   [ -z "$1" ] && yay "All settings removed for STree '$root_key'."
   true
 }
@@ -538,12 +571,17 @@ function split_subtree
   fi
 
   git remote add -t "$branch" "$remote_name" "$url" &&
+    git config --file="$GITSTREES" "remote.$remote_name.url" "$(git config --get remote.$remote_name.url)" &&
+    git config --file="$GITSTREES" "remote.$remote_name.fetch" "$(git config --get remote.$remote_name.fetch)" &&
     git config --local "stree.$root_key.prefix" "$prefix" &&
+    git config --file="$GITSTREES" "stree.$root_key.prefix" "$prefix" &&
     git config --local "stree.$root_key.branch" "$branch" &&
+    git config --file="$GITSTREES" "stree.$root_key.branch" "$branch" &&
     git checkout -b "$branch_name" --quiet &&
     git filter-branch -f --subdirectory-filter "$prefix" > /dev/null &&
     git push --quiet -u "$remote_name" "$branch_name":"$branch" > /dev/null &&
     git config --local "stree.$root_key.latest-sync" "$(git rev-parse HEAD)" &&
+    git config --file="$GITSTREES" "stree.$root_key.latest-sync" "$(git rev-parse HEAD)" &&
     git checkout --quiet --merge "$latest_head" &&
     yay "STree '$root_key' configured, split and pushed."
 }
@@ -573,7 +611,7 @@ Usage: $0 sub-command [options...]
 EOT
   else
     cat >&2 <<-EOT
-Usage: $0 $cmd [options…]
+Usage: $0 $cmd [optionsâ€¦]
 
 EOT
   fi
@@ -657,7 +695,7 @@ EOT
     cat >&2 <<-EOT
     help [command]
 
-      Displays this usage information, or the command’s usage information.
+      Displays this usage information, or the commandâ€™s usage information.
 EOT
   fi
 }
@@ -667,7 +705,7 @@ function yay {
   message $GREEN "$CHECK ""$@"$'\n'
 }
 
-# Allow subshells (such as functions called within a `$(…)` subshell)
+# Allow subshells (such as functions called within a `$(â€¦)` subshell)
 # to exit the parent script (the main `git-stree` script) by sending it
 # an ABRT (6) signal.  See `error` for the trigger side of this.
 function exit1 {
@@ -692,8 +730,10 @@ case "$subcmd" in
     push_subtree;;
   r|rm)
     rm_subtree;;
-  s|sp|spl|spli|split)
+  sp|spl|spli|split)
     split_subtree;;
+  sy|syn|sync)
+    sync_gitstrees;;
   ""|*)
     usage;;
 esac
