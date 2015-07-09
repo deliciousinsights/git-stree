@@ -321,7 +321,16 @@ function list_subtrees
 
 # Helper: sync local config and .gitstrees
 function sync_gitstrees() {
+  local conflocal="$(git config --local -l)"
   local conf="$(git config --file=$GITSTREES -l)"
+
+  for confline in $conflocal;
+  do
+    if [[ "$confline" == "remote.stree-"* ]] || [[ "$confline" == "stree."* ]]; then
+      IFS='=' read key val <<< "$confline"
+      git config --local --remove-section "$(cut -d . -f 1-2 <<< $key)" &> /dev/null
+    fi
+  done
   
   for confline in $conf;
   do
