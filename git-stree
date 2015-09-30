@@ -388,8 +388,10 @@ function pull_subtree
     local remote_hash=$(git rev-parse --short $remote/$branch)
 
     local msg_file="$(git rev-parse --git-dir)/SQUASH_MSG"
-    local msg="[STree] Pulled stree '$root_key'"$'\n\n'"$(sed "/^commit $latest_sync/,100000d" "$msg_file")"
+    #local msg="[STree] Pulled stree '$root_key'"$'\n\n'"$(sed "/^commit $latest_remote/,100000d" "$msg_file")"
+    local msg="[STree] Pulled stree '$root_key' ($remote_hash)"$'\n\n'
     echo "$msg" > "$msg_file"
+    git log --pretty=format:"%h %aN %s" "$latest_remote".."$remote/$branch" >> "$msg_file"
     local commits=$(grep --count '^commit ' "$msg_file")
     git commit -F "$msg_file" &&
     git config --local "stree.$root_key.latest-sync" "$(git rev-parse --short HEAD)" &&
