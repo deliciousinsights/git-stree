@@ -383,13 +383,17 @@ function pull_subtree
   else
     local latest_sync=$(git config --local "stree.$root_key.latest-sync")
     [ -n "$latest_sync" ] || latest_sync='(use all)'
+    local latest_remote=$(git config --local "stree.$root_key.latest-remote")
+    [ -n "$latest_remote" ] || latest_remote='(use all)'
+    local remote_hash=$(git rev-parse --short $remote/$branch)
 
     local msg_file="$(git rev-parse --git-dir)/SQUASH_MSG"
     local msg="[STree] Pulled stree '$root_key'"$'\n\n'"$(sed "/^commit $latest_sync/,100000d" "$msg_file")"
     echo "$msg" > "$msg_file"
     local commits=$(grep --count '^commit ' "$msg_file")
     git commit -F "$msg_file" &&
-    git config --local "stree.$root_key.latest-sync" "$(git rev-parse --short HEAD)"
+    git config --local "stree.$root_key.latest-sync" "$(git rev-parse --short HEAD)" &&
+    git config --local "stree.$root_key.latest-remote" "$remote_hash"
     yay "STree '$root_key' pulled, $commits update(s) committed."
   fi
 }
