@@ -462,6 +462,7 @@ function push_subtree
   for commit in "${commits[@]}"; do
     git cherry-pick -x -X subtree="$prefix" "$commit" > /dev/null &&
       git config --local "stree.$root_key.latest-sync" "$commit" &&
+      git config --local "stree.$root_key.latest-remote" "$commit" &&
       discreet "• $(git show -s --oneline "$commit")" ||
       error false "Could not cherry-pick $(git show -s --oneline "$commit")"
   done
