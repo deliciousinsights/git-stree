@@ -427,7 +427,7 @@ function push_subtree
     latest=$(git rev-parse --short "$latest")
     local root_dir="$(dirname $(git rev-parse --git-dir))"
     cd "$root_dir"
-    commits=($(git rev-list --reverse --abbrev-commit "$latest".. -- "$prefix"))
+    commits=($(git rev-list --reverse --abbrev-commit --no-merges "$latest".. -- "$prefix"))
     cd - > /dev/null
     if [ ${#commits[@]} -eq 0 ]; then
       meh "No local commits found for subtree '$name' since latest sync ($latest)"
