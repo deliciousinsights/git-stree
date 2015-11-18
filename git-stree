@@ -33,6 +33,9 @@
 { echo "foo" | iconv -t 'ASCII' &> /dev/null; } && has_iconv=true || has_iconv=false
 { echo "foo" | tr A-Z a-z &> /dev/null; } && has_tr=true || has_tr=false
 
+# Sync file name.
+SYNC_FNAME=".gitstrees"
+
 # Color constants (VT100 ANSI codes)
 CYAN=36
 GRAY=37
@@ -307,6 +310,29 @@ function list_subtrees
       echo ''
     fi
   done
+}
+
+# Generate a syncing file for cross-repo syncing. Reads the --local .git/config file.
+function generate_sync_file() {
+  local conf=$(git config --local -l)
+  local file=$(git rev-parse --show-toplevel)"/$SYNC_FNAME"
+
+  touch $file
+  echo -e '' > $file
+
+  for confline in $conf;
+  do
+    if [[ "$confline" == "remote.stree-"* ]]; then
+      IFS='=' read key val <<< "$confline"
+      git config --file="$file" "$key" "$val"
+    elif [[ "$confline" == "stree."* ]]; then
+      IFS='=' read key val <<< "$confline"
+      git config --file="$file" "$key" "$val"
+    fi
+
+  done
+
+  meh "Strees configuration files synced!"
 }
 
 # Helper: info/success message.  This will show up in cyan on STDOUT.
@@ -692,8 +718,10 @@ case "$subcmd" in
     push_subtree;;
   r|rm)
     rm_subtree;;
-  s|sp|spl|spli|split)
+  sp|spl|spli|split)
     split_subtree;;
+  sy|syn|sync)
+    generate_sync_file;;
   ""|*)
     usage;;
 esac
