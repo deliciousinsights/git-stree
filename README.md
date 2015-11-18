@@ -2,6 +2,12 @@
 
 **Subtrees** are a great way to share a single tree across multiple projects using it in their own codebases. For many use-cases, they are a vastly superior alternative to submodules.  Alas, there is no built-in equivalent to `git submodule` to help you properly manage subtrees.
 
+## A word of caution!
+
+There are quite a number of outstanding issues with the current implementation of `stree`.  We've been overwhelmed with day-job work in the past several months, and we are very much hopeful of dedicating some significant time to a complete overhaul of the technical underpinnings of `stree` during the holidays (Xmas 2015).  Many of the currently open issues appear to be different facets of the same underlying problems.
+
+The adoption of `stree` has seen an unexpected uptake in the past few months, and it's been very frustrating to us to see a number of issues crop up and not being able to address them with proper diligence.  Thanks a ton for your patience!  We'll make it worth your while.
+
 ## Why git-subtree doesn't quite cut it
 
 A contrib script has long existed, `git-subtree`, that has now been included in the official Git distribution for some time, therefore accessible through the `git subtree` "subcommand."  It is very powerful and resilient, unfortunately it has two major drawbacks in my eyes:
