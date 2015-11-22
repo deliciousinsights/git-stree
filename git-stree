@@ -383,13 +383,19 @@ function pull_subtree
   else
     local latest_sync=$(git config --local "stree.$root_key.latest-sync")
     [ -n "$latest_sync" ] || latest_sync='(use all)'
+    local latest_remote=$(git config --local "stree.$root_key.latest-remote")
+    [ -n "$latest_remote" ] || latest_remote='(use all)'
+    local remote_hash=$(git rev-parse --short $remote/$branch)
 
     local msg_file="$(git rev-parse --git-dir)/SQUASH_MSG"
-    local msg="[STree] Pulled stree '$root_key'"$'\n\n'"$(sed "/^commit $latest_sync/,100000d" "$msg_file")"
+    #local msg="[STree] Pulled stree '$root_key'"$'\n\n'"$(sed "/^commit $latest_remote/,100000d" "$msg_file")"
+    local msg="[STree] Pulled stree '$root_key' ($remote_hash)"$'\n\n'
     echo "$msg" > "$msg_file"
+    git log --pretty=format:"%h %aN %s" "$latest_remote".."$remote/$branch" >> "$msg_file"
     local commits=$(grep --count '^commit ' "$msg_file")
     git commit -F "$msg_file" &&
-    git config --local "stree.$root_key.latest-sync" "$(git rev-parse --short HEAD)"
+    git config --local "stree.$root_key.latest-sync" "$(git rev-parse --short HEAD)" &&
+    git config --local "stree.$root_key.latest-remote" "$remote_hash"
     yay "STree '$root_key' pulled, $commits update(s) committed."
   fi
 }
@@ -421,7 +427,7 @@ function push_subtree
     latest=$(git rev-parse --short "$latest")
     local root_dir="$(dirname $(git rev-parse --git-dir))"
     cd "$root_dir"
-    commits=($(git rev-list --reverse --abbrev-commit "$latest".. -- "$prefix"))
+    commits=($(git rev-list --reverse --abbrev-commit --no-merges "$latest".. -- "$prefix"))
     cd - > /dev/null
     if [ ${#commits[@]} -eq 0 ]; then
       meh "No local commits found for subtree '$name' since latest sync ($latest)"
@@ -456,6 +462,7 @@ function push_subtree
   for commit in "${commits[@]}"; do
     git cherry-pick -x -X subtree="$prefix" "$commit" > /dev/null &&
       git config --local "stree.$root_key.latest-sync" "$commit" &&
+      git config --local "stree.$root_key.latest-remote" "$commit" &&
       discreet "• $(git show -s --oneline "$commit")" ||
       error false "Could not cherry-pick $(git show -s --oneline "$commit")"
   done
