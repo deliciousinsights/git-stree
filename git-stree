@@ -312,7 +312,7 @@ function list_subtrees
 # Helper: info/success message.  This will show up in cyan on STDOUT.
 function meh
 {
-  message $CYAN '✔︎ '"$@"$'\n'
+  message $CYAN "$CHECK ""$@"$'\n'
 }
 
 # Helper: message.  Takes a color code as first arg, then the message as remaining
