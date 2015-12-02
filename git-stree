@@ -3,7 +3,7 @@
 # Git STree -- A better Git subtree helper command.
 #
 # http://tdd.github.io/git-stree
-# http://https://medium.com/@porteneuve/mastering-git-subtrees-943d29a798ec
+# https://medium.com/@porteneuve/mastering-git-subtrees-943d29a798ec
 #
 # Copyright (c) 2014 Christophe Porteneuve <christophe@delicious-insights.com>
 #
@@ -255,7 +255,7 @@ function get_root_key
   local result="$1"
   $has_iconv && result=$(echo "$result" | iconv -t 'ASCII//TRANSLIT//IGNORE')
   $has_tr && result=$(echo "$result" | tr A-Z a-z)
-  result=$(echo "$result" | sed 's/[^a-z0-9_ -]\+//g' | sed -e 's/^ \+\| \+$//g' -e 's/ \+/-/g')
+  result=$(echo "$result" | sed -E -e 's/[^a-z0-9_ -]//g' -e 's/^ *//g' -e 's/  */-/g')
   [ -z "$result" ] && error false "STree name '$1' does not yield a usable remote name.  Try using ASCII letters/numbers in it."
   echo "$result"
 }
@@ -266,7 +266,7 @@ function get_root_key
 function get_subtree_list
 {
   git config --local --get-regexp 'remote\.stree.*\.url' | sort | while read key url; do
-    local name="$(sed 's/remote\.stree-\|\.url//g' <<< "$key")"
+    local name="$(sed -E -e 's/^remote\.stree-//g' -e 's/\.url$//g' <<< "$key")"
     if [ 'simple' == "$1" ]; then
       echo "$name"
     else
@@ -343,7 +343,7 @@ function normalize_prefix
     path="${path/${BASH_REMATCH[0]}/}"
   done
 
-  sed "s@$root/@@" <<< "$path"
+  sed -E "s@^$root/@@" <<< "$path"
 }
 
 # Helper: gets an argument from the CLI, if present, otherwise uses the default

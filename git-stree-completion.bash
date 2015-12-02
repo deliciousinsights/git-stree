@@ -86,7 +86,7 @@ function __git_stree_complete {
 # Helper. This is actually nearly a copy of git-stree's get_subtree_list helper function.
 function __git_stree_complete_list {
   git config --local --get-regexp "remote\.stree-$1.*\.url" | sort | while read key _; do
-    sed 's/remote\.stree-\|\.url//g' <<< "$key"
+    sed -E -e 's/^remote\.stree-//g' -e 's/\.url$//g' <<< "$key"
   done
 }
 
