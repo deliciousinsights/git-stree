@@ -1,278 +1,47 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en-us">
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Git STree by tdd</title>
-
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <script src="javascripts/scale.fix.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <meta charset="UTF-8">
+    <title>Git STree by deliciousinsights</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
   </head>
   <body>
-    <div class="wrapper">
-      <header>
-        <h1>Git STree</h1>
-        <p>A better Git subtree helper command</p>
-        <p class="view"><a href="https://github.com/tdd/git-stree">View the Project on GitHub <small>tdd/git-stree</small></a></p>
-        <ul>
-          <li><a href="https://github.com/tdd/git-stree/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/tdd/git-stree/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/tdd/git-stree">View On <strong>GitHub</strong></a></li>
-        </ul>
-      </header>
-      <section>
-        <h1>
-<a id="stree-a-better-git-subtree-command" class="anchor" href="#stree-a-better-git-subtree-command" aria-hidden="true"><span class="octicon octicon-link"></span></a>stree: a better Git subtree command</h1>
+    <section class="page-header">
+      <h1 class="project-name">Git STree</h1>
+      <h2 class="project-tagline">A better Git subtree helper command</h2>
+      <a href="https://github.com/deliciousinsights/git-stree" class="btn">View on GitHub</a>
+      <a href="https://github.com/deliciousinsights/git-stree/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/deliciousinsights/git-stree/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="stree-a-better-git-subtree-command" class="anchor" href="#stree-a-better-git-subtree-command" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>stree: a better Git subtree command</h1>
 
 <p><strong>Subtrees</strong> are a great way to share a single tree across multiple projects using it in their own codebases. For many use-cases, they are a vastly superior alternative to submodules.  Alas, there is no built-in equivalent to <code>git submodule</code> to help you properly manage subtrees.</p>
 
 <h2>
-<a id="why-git-subtree-doesnt-quite-cut-it" class="anchor" href="#why-git-subtree-doesnt-quite-cut-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why git-subtree doesn't quite cut it</h2>
+<a id="warning-this-project-is-deprecated" class="anchor" href="#warning-this-project-is-deprecated" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a><img class="emoji" title=":warning:" alt=":warning:" src="https://assets-cdn.github.com/images/icons/emoji/unicode/26a0.png" height="20" width="20" align="absmiddle"> THIS PROJECT IS DEPRECATED</h2>
 
-<p>A contrib script has long existed, <code>git-subtree</code>, that has now been included in the official Git distribution for some time, therefore accessible through the <code>git subtree</code> "subcommand."  It is very powerful and resilient, unfortunately it has two major drawbacks in my eyes:</p>
+<p>Maintenance of <code>git stree</code> has stopped in favor of another third-party project: <strong><a href="https://github.com/ingydotnet/git-subrepo#readme">git-subrepo</a></strong>.  It is actively maintained, much more robust, with more features, excellent test coverage and system integration, and more.  It does cover all the actual use cases, and there's no point in plodding forward with git-stree now.</p>
 
-<ol>
-<li>It uses merges, even in squash mode, which means it <strong>pollutes the graph</strong> with long-running, oft-merged branches for every subtree.</li>
-<li>It requires every command to <strong>re-specify the entire subtree settings</strong> (remote URL/name, remote branch, local tree prefix).</li>
-</ol>
+<p>Get there for all your subrepo management needs, you'll love it! <img class="emoji" title=":heart:" alt=":heart:" src="https://assets-cdn.github.com/images/icons/emoji/unicode/2764.png" height="20" width="20" align="absmiddle"></p>
 
-<h2>
-<a id="what-git-stree-gives-you" class="anchor" href="#what-git-stree-gives-you" aria-hidden="true"><span class="octicon octicon-link"></span></a>What git-stree gives you</h2>
+<p><em>We'd like to take this opportunity to thank all the people who gave git-stree a spin, and contributed some of their time to feedback and possibly pull requests.  But because this project is now deprecated and maintenance has stopped, pull requests won't be accepted anymore, and issues are closed.  If you *</em>really want to keep with it*<em>, feel free to fork and make progress!  Thanks a ton for using this so far.</em></p>
 
-<p>Obviously, I scratched my own itch here. So what did I want to achieve?</p>
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/deliciousinsights/git-stree">Git STree</a> is maintained by <a href="https://github.com/deliciousinsights">deliciousinsights</a>.</span>
 
-<ul>
-<li>
-<strong>One-time settings specification.</strong> I want to tell Git about how my subtree works just once, when adding it. Then it should remember it for later commands.</li>
-<li>
-<strong>No history graph pollution.</strong> My subtree comes from a distinct codebase, with its own history. I'm not interested in seeing that history conflated with my main codebases' histories. I'm also not interested in having my graph polluted by long-running branches for every subtree I define.  So I expect a subtree pull to result in a single squash commit right on my current branch (yet its commit message may definitely detail what central commits it pulled).</li>
-<li>
-<strong>Familiar subcommands.</strong>  This is inspired by <code>git-subtree</code>'s well-thought-out reuse of familiar semantics such as <code>push</code> and <code>pull</code>, except here we won't ask you to re-state all your settings again, as we persisted them on <code>add</code>.</li>
-<li>
-<strong>Ability to select what local updates to backport.</strong> Unlike <code>git-subtree</code>, we do not mandate that every commit you've done on your subtree's local code be backported upstream when you <code>push</code>: you can specify which commits to backport.</li>
-<li>
-<strong>Extra tooling for subtree management.</strong> The <code>list</code>, <code>rm</code> and <code>forget</code> commands are all there to make your subtree management easier.  We also provide a full-featured <strong>Bash completion script</strong> you can run after your regular Git completion.</li>
-</ul>
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
 
-<h2>
-<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+    </section>
 
-<p>At a minimum, you simply need to put the <code>git-stree</code> script somewhere in your PATH (<code>/usr/local/bin</code> seems like a good choice), and make sure it has executable permissions (<code>chmod +x</code> it if need be).</p>
-
-<p>The script an then automatically be used as either <code>git-stree</code> or <code>git stree</code> (because Git is cool like that).</p>
-
-<p>If you want the completion (which is always nice), you should the <code>git-stree-completion.bash</code> file somewhere and make sure it is loaded, preferrably <em>after</em> Git's original completion.  On many Linux systems, this just means putting that file in <code>/etc/bash_completion.d/</code>.  Otherwise, just <code>source</code> it in your user's shell initialization file (<code>~/.bashrc</code>, <code>~/.bash_profile</code> or <code>~/.profile</code>, depending on your situation), making sure you do so after Git's completion file, so our completion can piggy-back on its system for the main <code>git</code> command.</p>
-
-<h2>
-<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
-
-<p>Simply use the <code>git stree</code> command. If you don't pass it any argument, or use the <code>help</code> subcommand or <code>--help</code> option, you'll get detailed usage information.</p>
-
-<p>Also note that any subcommand can display its specific usage info much like with Git built-in commands, either by saying <code>git stree help add</code> or <code>git stree add --help</code>.</p>
-
-<h2>
-<a id="subcommands" class="anchor" href="#subcommands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Subcommands</h2>
-
-<p><code>git stree</code> has a number of subcommands you use to manage your subtrees with ease.</p>
-
-<p><strong>Important note:</strong> we will never conflate your ongoing commit work (your stage, basically) with our own manipulations, so most commands will refuse to go ahead if you have an <strong>ongoing stage</strong> (and will explicitly tell you what the problem is).  In the same spirit, as most commands will perform a new commit on the current HEAD and you likely don't want to lose it, they will refuse to work if you're in <strong>detached HEAD</strong> state (again, telling you what the problem is).</p>
-
-<h3>
-<a id="add" class="anchor" href="#add" aria-hidden="true"><span class="octicon octicon-link"></span></a>add</h3>
-
-<pre><code>git stree add &lt;name&gt; -P &lt;prefix&gt; &lt;url&gt; [&lt;branch&gt;]
-</code></pre>
-
-<p>Use this to add a new subtree to your current repo, and do its initial pull.</p>
-
-<ul>
-<li>
-<code>name</code> is your subtree's name.  It is used as a basis for the names of the remote, settings section and backport branch.  If you have <code>iconv</code> and <code>tr</code> available on your system it will get normalized, but you should generally stick to ASCII alphanumeric characters (dashes and underscores are also okay). This is also the name you'll use for most other commands to tell them which subtree you want to manipulate.</li>
-<li>
-<code>prefix</code> is the subdirectory in which to install your subtree's codebase.  We do not mandate that <code>add</code> be used from the root of your repo, so this will get normalized from that root.</li>
-<li>
-<code>url</code> is the URL for the new remote that will be created for tracking your subtree's central code and backporting to it (if you wish to).  Any valid Git URL will work, including filesystem paths and <code>file://</code> URLs.</li>
-<li>
-<code>branch</code> is the remote branch you want to track with your subtree.  It defaults to <code>master</code>.</li>
-</ul>
-
-<p>Example call:</p>
-
-<pre><code>$ git stree add logging -P vendor/plugins/logging git@github.com:myorg/plugins-logging.git
-[master f01fe86] [STree] Added stree 'logging' in vendor/plugins/logging
- 4 files changed, 24 insertions(+)
- create mode 100644 vendor/plugins/logging/README.md
- create mode 100644 vendor/plugins/logging/demo.txt
- create mode 100644 vendor/plugins/logging/lib/index.js
- create mode 100644 vendor/plugins/logging/plugin-config.json
-
-✔︎ STree 'logging' configured, 1st injection committed.
-</code></pre>
-
-<h3>
-<a id="forget" class="anchor" href="#forget" aria-hidden="true"><span class="octicon octicon-link"></span></a>forget</h3>
-
-<p>This command removes any setting (including remotes) and backport branches related to subtrees managed by <code>git stree</code>.</p>
-
-<p>However, the local code trees remain untouched, as your codebase should still be needing them…</p>
-
-<p>Say you have two subtrees defined already: <code>logging</code> and <code>payment</code>.  You'd get something like this:</p>
-
-<pre><code>$ git stree forget
-• Removed subtree 'logging'
-• Removed subtree 'payment'
-✔︎ Successfully removed all subtree definitions.
-</code></pre>
-
-<h3>
-<a id="list" class="anchor" href="#list" aria-hidden="true"><span class="octicon octicon-link"></span></a>list</h3>
-
-<p>Not sure what subtrees you have defined in there?  Just ask:</p>
-
-<pre><code>$ git stree list
-• logging [vendor/plugins/logging] &lt;=&gt; git@github.com:myorg/plugins-logging.git@master
-• payment [vendor/plugins/payment] &lt;=&gt; git@github.com:myorg/plugins-payment.git@master
-</code></pre>
-
-<p>You can ask for further details with the <code>-v</code> option, which lists the latest sync (pull from the subtree's remote branch) and backport (push you used to send part or all of your local updates for this subtree back to its remote branch):</p>
-
-<pre><code>git stree list -v
-• logging [vendor/plugins/logging] &lt;=&gt; git@github.com:myorg/plugins-logging.git@master
-
-  Latest sync: dcdb617 - Sun Nov 9 11:50:53 2014 +0100 - [STree] Added stree 'logging' in vendor/plugins/logging (Christophe Porteneuve)
-
-• payment [vendor/plugins/payment] &lt;=&gt; git@github.com:myorg/plugins-payment.git@master (backports through stree-backports-payment)
-
-  Latest sync:     b1b9ed4 - Sun Nov 9 11:55:23 2014 +0100 - Payment general perf fix (Christophe Porteneuve)
-  Latest backport: 787bd12 - Sun Nov 9 11:55:23 2014 +0100 - Payment general perf fix (Christophe Porteneuve)
-</code></pre>
-
-<h3>
-<a id="pull" class="anchor" href="#pull" aria-hidden="true"><span class="octicon octicon-link"></span></a>pull</h3>
-
-<p>If the central code for your subtree has evolved, mostly due to maintenance and upgrades, and you wish to grab these updates in your local copy, just pull:</p>
-
-<pre><code>git stree pull &lt;name&gt;
-</code></pre>
-
-<p>For instance:</p>
-
-<pre><code>$ git stree pull logging
-
-[master 1be35a9] [STree] Pulled stree 'logging'
- 1 file changed, 1 insertion(+), 1 deletion(-)
-✔︎ STree 'logging' pulled, updates committed.
-</code></pre>
-
-<p>The commit message for the pull (which is a squashed commit of all the updates in the remote subtree since your last pull) gives you the details:</p>
-
-<pre><code>$ git show -s
-commit 1be35a9
-Author: Christophe Porteneuve &lt;tdd@tddsworld.com&gt;
-Date:   Sun Nov 9 12:10:49 2014 +0100
-
-    [STree] Pulled stree 'logging'
-
-    Squashed commit of the following:
-
-    commit 343ce9aa62275ca328bb7b4ab62d2c25b97d6cc5
-    Author: Christophe Porteneuve &lt;tdd@tddsworld.com&gt;
-    Date:   Sun Nov 9 12:10:31 2014 +0100
-
-        Better log timestamping
-</code></pre>
-
-<h3>
-<a id="push" class="anchor" href="#push" aria-hidden="true"><span class="octicon octicon-link"></span></a>push</h3>
-
-<p>The <code>push</code> command lets you backport part or all of the local updates you've made on the subtree's code.</p>
-
-<pre><code>git stree push &lt;name&gt; [&lt;commit&gt;...]
-</code></pre>
-
-<p>For this to work properly, you need to observe a good hygiene for your commits on your local copy of the subtree: make sure such changes are in their own commits, not mixed up with changes elsewhere in your working directory.</p>
-
-<p>If you wish to backport everything (say that all you did was relevant for everyone using the subtree, not just your own current codebase), just push:</p>
-
-<pre><code>$ git stree push payment
-• b1b9ed4 Payment general perf fix
-✔︎ STree 'payment' successfully backported local changes to its remote
-</code></pre>
-
-<p>We remember your last sync point with the subtree's remote branch, on <code>add</code>, <code>pull</code> and <code>push</code>, so we don't try to backport commits that are known to the remote branch already, or have been explicitly ignored by your prior pushes.</p>
-
-<p>Under the hood, this will create a special backport branch the first time around (and on later pushes, update it first by rebasing it on the subtree's remote branch, auto-stashing any local changes you may have around the rebase to avoid confusion).</p>
-
-<p>Then every eligible commit is cherry-picked, subtree-style, to the backport branch.  When we're done, it's pushed to the subtree's remote branch.  Then we get back to what your HEAD was before the <code>stree push</code>.</p>
-
-<p>If you wish to backport only certain commits, just list them (any commit-ish will do: SHAs and abbrevs, branch tips, tags, etc.) after the subtree's name.</p>
-
-<p>This command actually works on a detached HEAD, as it will work on another local branch anyway.</p>
-
-<h3>
-<a id="rm" class="anchor" href="#rm" aria-hidden="true"><span class="octicon octicon-link"></span></a>rm</h3>
-
-<p>If you wish to remove a subtree definition (perhaps to add it again a different way) and its artefacts (such as the backport branch), just call this command.  It accepts one subtree name:</p>
-
-<pre><code>$ git stree rm payment
-✔︎ All settings removed for STree 'payment'.
-</code></pre>
-
-<p>If you wish to remove all subtree settings, use <code>git stree forget</code> instead.</p>
-
-<h3>
-<a id="split" class="anchor" href="#split" aria-hidden="true"><span class="octicon octicon-link"></span></a>split</h3>
-
-<p>Perhaps you’d like to turn a part of your codebase, which up to now was always inside this repository, into a subtree.  This way, you could share it across other codebases.  We offer a <code>split</code> subcommand just for that.  It takes exactly the same arguments as <code>add</code>, only instead of grabbing the subtree from its remote, it creates it there (the remote has to exist and be ready for a first push).</p>
-
-<p>Say you have a <code>vendor/plugins/payment</code> subdirectory you want to turn into a subtree, to be pushed on a remote you’ve just created at <code>git@github.com:myorg/plugins-payment.git</code>.  Just use the following command:</p>
-
-<pre><code>$ git stree split payment -P vendor/plugins/payment git@github.com:myorg/plugins-payment.git
-✔︎ STree 'payment' configured, split and pushed.
-</code></pre>
-
-<p>You can now <code>add</code> that subtree in other repos, and maintain its subdirectory as if it had originally been imported with an <code>add</code>, too.</p>
-
-<h2>
-<a id="caveats" class="anchor" href="#caveats" aria-hidden="true"><span class="octicon octicon-link"></span></a>Caveats</h2>
-
-<ul>
-<li>Completion likely doesn't work on zsh just now, and perhaps not well on msysGit / Cygwin environments.</li>
-<li>Just like <code>git-subtree</code>, we advise strongly you keep local updates to your subtree in their own dedicated commits, to facilitate backporting some of these to the subtree's remote.</li>
-<li>Subtree settings currently remain local to your repo (in your local Git configuration).  Work is ongoing to provide subcommands facilitating the versioning and sharing of stree settings.</li>
-</ul>
-
-<h2>
-<a id="contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
-
-<p>We welcome all contributions, especially in the following areas:</p>
-
-<ul>
-<li>Bugfixes</li>
-<li>Extended completion (especially zsh compatibility, and Cygwin/msysgit for Windows users)</li>
-<li>Unit tests</li>
-</ul>
-
-<p>To contribute, just fork this repository on GitHub, write your stuff and send a pull request.</p>
-
-<h2>
-<a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
-
-<p>This work is copyright © 2014 Christophe Porteneuve, and MIT-licensed.  See the details in the <code>LICENSE</code> file.</p>
-      </section>
-    </div>
-    <footer>
-      <p>Project maintained by <a href="https://github.com/tdd">tdd</a></p>
-      <p>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></p>
-    </footer>
-    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
-              <script type="text/javascript">
+            <script type="text/javascript">
             var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
             document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
           </script>
