@@ -337,12 +337,21 @@ function normalize_prefix
     return
   fi
 
-  local path="$(pwd -P)/$1"
-  path="${path//\/.\//\/}"
-  while [[ "$path"=~"([^/][^/]*/\.\./)" ]]; do
-    path="${path/${BASH_REMATCH[0]}/}"
-  done
-
+  if [ -n `ls -1d "$1"` ]
+  then
+    pushd $1
+    local path=`pwd`
+    popd
+  elif [ -n "`which readlink`" ]
+  then
+    local path=$(readlink -m $1)
+  else
+    local path="$(pwd -P)/$1"
+    path="${path//\/.\//\/}"
+    while [[ "$path"=~"([^/][^/]*/\.\./)" ]]; do
+      path="${path/${BASH_REMATCH[0]}/}"
+    done
+  fi
   sed "s@$root/@@" <<< "$path"
 }
 
@@ -537,6 +546,7 @@ function split_subtree
     error false "A subtree backport branch already exists for '$name' ($branch_name).  Subtree already defined/split?"
   fi
 
+  pushd $(dirname $(git rev-parse --git-dir))
   git remote add -t "$branch" "$remote_name" "$url" &&
     git config --local "stree.$root_key.prefix" "$prefix" &&
     git config --local "stree.$root_key.branch" "$branch" &&
@@ -546,6 +556,7 @@ function split_subtree
     git config --local "stree.$root_key.latest-sync" "$(git rev-parse HEAD)" &&
     git checkout --quiet --merge "$latest_head" &&
     yay "STree '$root_key' configured, split and pushed."
+  popd
 }
 
 # Helper: usage display on STDERR.  Used when an error occurs or when the CLI
